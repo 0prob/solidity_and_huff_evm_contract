@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.34;
+
+import {Script} from "forge-std/Script.sol";
+import {console2} from "forge-std/console2.sol";
+import {ArbExecutor} from "../src/ArbExecutor.sol";
+
+import {HuffDeployer} from "../test/HuffDeployer.sol";
+
+contract ArbExecutorScript is Script {
+    address internal constant DEFAULT_BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
+    address internal constant DEFAULT_UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+    address internal constant DEFAULT_SUSHISWAP_V3_FACTORY = 0x917933899c6a5F8E37F31E19f92CdBFF7e8FF0e2;
+    address internal constant DEFAULT_QUICKSWAP_V3_FACTORY = 0x411b0fAcC3489691f28ad58c47006AF5E3Ab3A28;
+    address internal constant DEFAULT_KYBER_ELASTIC_FACTORY = 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a;
+    address internal constant DEFAULT_RAMSES_V3_FACTORY = 0x2Bef16A0081565E72100D73CBe19B1Bd2d802380;
+    address internal constant DEFAULT_AAVE_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    address internal constant DEFAULT_POOL_MANAGER = 0x67366782805870060151383F4BbFF9daB53e5cD6;
+
+    function run() external returns (ArbExecutor executor) {
+        address owner = vm.envAddress("OWNER");
+        address balancerVault = vm.envOr("BALANCER_VAULT", DEFAULT_BALANCER_VAULT);
+        address uniswapV3Factory = vm.envOr("UNISWAP_V3_FACTORY", DEFAULT_UNISWAP_V3_FACTORY);
+        address sushiV3Factory = vm.envOr("SUSHISWAP_V3_FACTORY", DEFAULT_SUSHISWAP_V3_FACTORY);
+        address quickswapV3Factory = vm.envOr("QUICKSWAP_V3_FACTORY", DEFAULT_QUICKSWAP_V3_FACTORY);
+        address kyberElasticFactory = vm.envOr("KYBER_ELASTIC_FACTORY", DEFAULT_KYBER_ELASTIC_FACTORY);
+        address ramsesV3Factory = vm.envOr("RAMSES_V3_FACTORY", DEFAULT_RAMSES_V3_FACTORY);
+        address aavePool = vm.envOr("AAVE_POOL", DEFAULT_AAVE_POOL);
+        address poolManager = vm.envOr("POOL_MANAGER", DEFAULT_POOL_MANAGER);
+
+        vm.startBroadcast();
+
+        bytes memory bytecode = abi.encodePacked(
+            HuffDeployer.BYTECODE,
+            abi.encode(
+                owner,
+                balancerVault,
+                uniswapV3Factory,
+                sushiV3Factory,
+                quickswapV3Factory,
+                kyberElasticFactory,
+                ramsesV3Factory,
+                aavePool,
+                poolManager
+            )
+        );
+
+        address addr;
+        assembly {
+            addr := create(0, add(bytecode, 0x20), mload(bytecode))
+        }
+        require(addr != address(0), "deploy failed");
+        executor = ArbExecutor(payable(addr));
+
+        vm.stopBroadcast();
+
+        console2.log("ArbExecutor deployed:", address(executor));
+        console2.log("owner:", owner);
+        console2.log("balancerVault:", balancerVault);
+        console2.log("uniswapV3Factory:", uniswapV3Factory);
+        console2.log("sushiV3Factory:", sushiV3Factory);
+        console2.log("quickswapV3Factory:", quickswapV3Factory);
+        console2.log("kyberElasticFactory:", kyberElasticFactory);
+        console2.log("ramsesV3Factory:", ramsesV3Factory);
+        console2.log("aavePool:", aavePool);
+    }
+}
