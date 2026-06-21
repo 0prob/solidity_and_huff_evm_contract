@@ -28,9 +28,8 @@ forge test
 # Test with fork (Polygon mainnet)
 forge test --fork-url $RPC_URL --match-path test/ArbExecutorAaveFork.t.sol -vvv
 
-# Deploy (sets OWNER from env)
-OWNER=0x... forge script script/ArbExecutor.s.sol --broadcast
-```
+# Deploy
+OWNER=<0x...> RPC_URL=<url> PRIVATE_KEY=<key> ./deploy
 
 ## Deployments
 
