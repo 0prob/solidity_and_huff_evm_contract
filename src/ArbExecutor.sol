@@ -49,10 +49,6 @@ interface IAlgebraFactoryLike {
     function poolByPair(address tokenA, address tokenB) external view returns (address);
 }
 
-interface IKyberElasticFactoryLike {
-    function getPool(address tokenA, address tokenB, uint24 swapFeeUnits) external view returns (address);
-}
-
 interface IRamsesV3FactoryLike {
     function getPool(address tokenA, address tokenB, int24 tickSpacing) external view returns (address);
 }
@@ -121,9 +117,17 @@ contract ArbExecutor is IFlashLoanRecipient {
     uint8 private constant PROTOCOL_UNISWAP_V3 = 1;
     uint8 private constant PROTOCOL_SUSHISWAP_V3 = 2;
     uint8 private constant PROTOCOL_QUICKSWAP_V3 = 3;
-    uint8 private constant PROTOCOL_KYBER_ELASTIC = 4;
-    uint8 private constant PROTOCOL_RAMSES_V3 = 6;
+    uint8 private constant PROTOCOL_QUICKSWAP_V4 = 4;
     uint8 private constant PROTOCOL_UNISWAP_V4 = 5;
+    uint8 private constant PROTOCOL_RAMSES_V3 = 6;
+    uint8 private constant PROTOCOL_UNISWAP_V2 = 7;
+    uint8 private constant PROTOCOL_SUSHISWAP_V2 = 8;
+    uint8 private constant PROTOCOL_QUICKSWAP_V2 = 9;
+    uint8 private constant PROTOCOL_DFYN_V2 = 10;
+    uint8 private constant PROTOCOL_APESWAP_V2 = 11;
+    uint8 private constant PROTOCOL_MESHSWAP_V2 = 12;
+    uint8 private constant PROTOCOL_JETSWAP_V2 = 13;
+    uint8 private constant PROTOCOL_COMETHSWAP_V2 = 14;
 
     uint8 private constant PHASE_IDLE = 0;
     uint8 private constant PHASE_FLASHLOAN = 1;
@@ -174,10 +178,18 @@ contract ArbExecutor is IFlashLoanRecipient {
     address public immutable uniswapV3Factory;
     address public immutable sushiV3Factory;
     address public immutable quickswapV3Factory;
-    address public immutable kyberElasticFactory;
     address public immutable ramsesV3Factory;
     address public immutable aavePool;
     address public immutable poolManager;
+    address public immutable uniswapV2Factory;
+    address public immutable sushiV2Factory;
+    address public immutable quickswapV2Factory;
+    address public immutable dfynV2Factory;
+    address public immutable apeSwapV2Factory;
+    address public immutable meshSwapV2Factory;
+    address public immutable jetSwapV2Factory;
+    address public immutable comethSwapV2Factory;
+    address public immutable quickswapV4Factory;
 
     uint8 private _phase;
     bytes32 private _activeRouteHash;
@@ -210,16 +222,29 @@ contract ArbExecutor is IFlashLoanRecipient {
         address uniswapV3Factory_,
         address sushiV3Factory_,
         address quickswapV3Factory_,
-        address kyberElasticFactory_,
         address ramsesV3Factory_,
         address aavePool_,
-        address poolManager_
+        address poolManager_,
+        address uniswapV2Factory_,
+        address sushiV2Factory_,
+        address quickswapV2Factory_,
+        address dfynV2Factory_,
+        address apeSwapV2Factory_,
+        address meshSwapV2Factory_,
+        address jetSwapV2Factory_,
+        address comethSwapV2Factory_,
+        address quickswapV4Factory_
     ) {
         if (
             owner_ == address(0) || balancerVault_ == address(0) || uniswapV3Factory_ == address(0)
                 || sushiV3Factory_ == address(0) || quickswapV3Factory_ == address(0)
-                || kyberElasticFactory_ == address(0) || ramsesV3Factory_ == address(0)
+                || ramsesV3Factory_ == address(0)
                 || aavePool_ == address(0) || poolManager_ == address(0)
+                || uniswapV2Factory_ == address(0) || sushiV2Factory_ == address(0)
+                || quickswapV2Factory_ == address(0) || dfynV2Factory_ == address(0)
+                || apeSwapV2Factory_ == address(0) || meshSwapV2Factory_ == address(0)
+                || jetSwapV2Factory_ == address(0) || comethSwapV2Factory_ == address(0)
+                || quickswapV4Factory_ == address(0)
         ) revert ZeroAddress();
 
         owner = owner_;
@@ -227,10 +252,18 @@ contract ArbExecutor is IFlashLoanRecipient {
         uniswapV3Factory = uniswapV3Factory_;
         sushiV3Factory = sushiV3Factory_;
         quickswapV3Factory = quickswapV3Factory_;
-        kyberElasticFactory = kyberElasticFactory_;
         ramsesV3Factory = ramsesV3Factory_;
         aavePool = aavePool_;
         poolManager = poolManager_;
+        uniswapV2Factory = uniswapV2Factory_;
+        sushiV2Factory = sushiV2Factory_;
+        quickswapV2Factory = quickswapV2Factory_;
+        dfynV2Factory = dfynV2Factory_;
+        apeSwapV2Factory = apeSwapV2Factory_;
+        meshSwapV2Factory = meshSwapV2Factory_;
+        jetSwapV2Factory = jetSwapV2Factory_;
+        comethSwapV2Factory = comethSwapV2Factory_;
+        quickswapV4Factory = quickswapV4Factory_;
         emit OwnershipTransferred(address(0), owner_);
     }
 
@@ -246,6 +279,33 @@ contract ArbExecutor is IFlashLoanRecipient {
     function preApprove(address token, address spender) external onlyAuthorized nonReentrant {
         _safeApproveMaxIfNeeded(token, spender, type(uint256).max);
         emit PreApproved(token, spender);
+    }
+
+    function approveAll(address token) external onlyAuthorized nonReentrant {
+        address[16] memory addrs = [
+            balancerVault,
+            uniswapV3Factory,
+            sushiV3Factory,
+            quickswapV3Factory,
+            ramsesV3Factory,
+            aavePool,
+            poolManager,
+            uniswapV2Factory,
+            sushiV2Factory,
+            quickswapV2Factory,
+            dfynV2Factory,
+            apeSwapV2Factory,
+            meshSwapV2Factory,
+            jetSwapV2Factory,
+            comethSwapV2Factory,
+            quickswapV4Factory
+        ];
+        for (uint256 i = 0; i < addrs.length; i++) {
+            address addr = addrs[i];
+            if (addr != address(0)) {
+                _safeApproveMaxIfNeeded(token, addr, type(uint256).max);
+            }
+        }
     }
 
     function approveIfNeeded(address token, address spender, uint256 amount) external nonReentrant {
@@ -425,10 +485,6 @@ contract ArbExecutor is IFlashLoanRecipient {
         _handlePoolSwapCallback(PROTOCOL_QUICKSWAP_V3, amount0Delta, amount1Delta, data);
     }
 
-    function swapCallback(int256 deltaQty0, int256 deltaQty1, bytes calldata data) external {
-        _handlePoolSwapCallback(PROTOCOL_KYBER_ELASTIC, deltaQty0, deltaQty1, data);
-    }
-
     function lockAcquired(bytes calldata data) external returns (bytes memory) {
         if (msg.sender != poolManager) revert CallbackOnly();
         if (_phase != PHASE_CALLBACK) revert InvalidFlashLoanContext();
@@ -491,10 +547,6 @@ contract ArbExecutor is IFlashLoanRecipient {
         }
         if (callbackData.protocolId == PROTOCOL_QUICKSWAP_V3) {
             return IAlgebraFactoryLike(quickswapV3Factory).poolByPair(callbackData.token0, callbackData.token1);
-        }
-        if (callbackData.protocolId == PROTOCOL_KYBER_ELASTIC) {
-            return IKyberElasticFactoryLike(kyberElasticFactory)
-                .getPool(callbackData.token0, callbackData.token1, callbackData.fee);
         }
         if (callbackData.protocolId == PROTOCOL_RAMSES_V3) {
             return IRamsesV3FactoryLike(ramsesV3Factory)

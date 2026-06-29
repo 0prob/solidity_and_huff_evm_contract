@@ -69,20 +69,16 @@ contract ArbExecutorAtomicTest {
     RevertingTarget internal reverter;
 
     function _deployExecutor(address vault) internal returns (ArbExecutor) {
-        bytes memory bytecode = abi.encodePacked(
-            HuffDeployer.BYTECODE,
-            abi.encode(
-                address(this),
-                vault,
-                address(0x1001),
-                address(0x1002),
-                address(0x1003),
-                address(0x1004),
-                address(0x1005),
-                address(0x1006),
-                address(0x1007)
-            )
-        );
+        bytes memory args1 = HuffDeployer.encode1(
+                address(this), vault,
+                address(0x1001), address(0x1002), address(0x1003), address(0x1004),
+                address(0x1005), address(0x1006)
+            );
+        bytes memory args2 = HuffDeployer.encode2(
+                address(0x1007), address(0x1008), address(0x1009), address(0x100a),
+                address(0x100b), address(0x100c), address(0x100d), address(0x100e), address(0x100f)
+            );
+        bytes memory bytecode = HuffDeployer.concatInit(HuffDeployer.BYTECODE, args1, args2);
         address addr;
         assembly {
             addr := create(0, add(bytecode, 0x20), mload(bytecode))

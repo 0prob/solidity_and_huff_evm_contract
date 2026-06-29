@@ -204,6 +204,65 @@ native_rescue_failed:
     0x64 0x00 revert
 }
 
+#define macro WITHDRAW() = takes (0) returns (0) {
+    ONLY_OWNER()
+    selfbalance
+    dup1 iszero withdraw_zero jumpi
+    0x00 sload
+    swap1
+    0x00 0x00 0x00 0x00
+    dup4 dup5
+    gas
+    call
+    iszero withdraw_failed jumpi
+    pop pop
+    stop
+withdraw_zero:
+    pop
+    stop
+withdraw_failed:
+    0xbf182be800000000000000000000000000000000000000000000000000000000 0x00 mstore
+    0x00 0x04 mstore
+    dup1 0x24 mstore
+    dup1 0x44 mstore
+    0x64 0x00 revert
+}
+
+#define macro WITHDRAW_TOKEN() = takes (0) returns (0) {
+    ONLY_OWNER()
+    0x04 calldataload
+    dup1 iszero is_zero_revert jumpi
+    0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
+    address 0x04 mstore
+    0x20 0x00 0x24 0x00 dup5 gas staticcall
+    iszero wtoken_bal_failed jumpi
+    returndatasize 0x20 lt wtoken_bal_failed jumpi
+    0x00 mload
+    dup1 iszero wtoken_skip jumpi
+    0x00 sload
+    0xa9059cbb00000000000000000000000000000000000000000000000000000000 0xe0 mstore
+    dup2 0xe4 mstore
+    dup3 0x104 mstore
+    0x20 0x00 0x44 0xe0 0x00 dup6 gas call
+    iszero wtoken_xfer_failed jumpi
+    returndatasize iszero wtoken_xfer_ok jumpi
+    0x00 mload iszero wtoken_xfer_failed jumpi
+wtoken_xfer_ok:
+    pop pop pop
+    stop
+wtoken_skip:
+    pop pop
+    stop
+wtoken_bal_failed:
+    0x00 0x00 revert
+wtoken_xfer_failed:
+    0xbf182be800000000000000000000000000000000000000000000000000000000 0x00 mstore
+    0x00 0x04 mstore
+    dup2 0x24 mstore
+    dup1 0x44 mstore
+    0x64 0x00 revert
+}
+
 #define macro EXECUTE_CALLS() = takes (1) returns (0) {
     // stack: [calls_ptr]
     dup1 calldataload
@@ -602,22 +661,33 @@ deadline_expired:
     dup1 0x01 eq is_uni_v3 jumpi
     dup1 0x02 eq is_sushi_v3 jumpi
     dup1 0x03 eq is_quick_v3 jumpi
-    dup1 0x04 eq is_kyber jumpi
+    dup1 0x04 eq is_quick_v4 jumpi
     dup1 0x06 eq is_ramses jumpi
+    dup1 0x07 eq is_uni_v2 jumpi
+    dup1 0x08 eq is_sushi_v2 jumpi
+    dup1 0x09 eq is_quick_v2 jumpi
+    dup1 0x0a eq is_dfyn_v2 jumpi
+    dup1 0x0b eq is_apeswap_v2 jumpi
+    dup1 0x0c eq is_meshswap_v2 jumpi
+    dup1 0x0d eq is_jetswap_v2 jumpi
+    dup1 0x0e eq is_comethswap_v2 jumpi
     0xf850442b00000000000000000000000000000000000000000000000000000000 0x00 mstore
     dup1 0x04 mstore
     0x24 0x00 revert
 is_uni_v3:
     0x08 sload
-    uni_sushi_kyber_call jump
+    uni_sushi_call jump
 is_sushi_v3:
     0x09 sload
-    uni_sushi_kyber_call jump
-is_kyber:
-    0x0b sload
-    uni_sushi_kyber_call jump
+    uni_sushi_call jump
+is_quick_v3:
+    0x0a sload
+    algebra_call jump
+is_quick_v4:
+    0x16 sload
+    algebra_call jump
 is_ramses:
-    0x0e sload
+    0x0b sload
     0x28af8d0b00000000000000000000000000000000000000000000000000000000 0x00 mstore
     dup3 0x04 mstore
     dup4 0x24 mstore
@@ -628,7 +698,31 @@ is_ramses:
     0x00 mload
     swap5 pop pop pop pop pop
     resolve_end jump
-uni_sushi_kyber_call:
+is_uni_v2:
+    0x0e sload
+    v2_call jump
+is_sushi_v2:
+    0x0f sload
+    v2_call jump
+is_quick_v2:
+    0x10 sload
+    v2_call jump
+is_dfyn_v2:
+    0x11 sload
+    v2_call jump
+is_apeswap_v2:
+    0x12 sload
+    v2_call jump
+is_meshswap_v2:
+    0x13 sload
+    v2_call jump
+is_jetswap_v2:
+    0x14 sload
+    v2_call jump
+is_comethswap_v2:
+    0x15 sload
+    v2_call jump
+uni_sushi_call:
     0x1698ee8200000000000000000000000000000000000000000000000000000000 0x00 mstore
     dup3 0x04 mstore
     dup4 0x24 mstore
@@ -639,11 +733,21 @@ uni_sushi_kyber_call:
     0x00 mload
     swap5 pop pop pop pop pop
     resolve_end jump
-is_quick_v3:
+algebra_call:
     0xd9a641e100000000000000000000000000000000000000000000000000000000 0x00 mstore
     dup2 0x04 mstore
     dup3 0x24 mstore
-    0x20 0x00 0x44 0x00 0x0a sload gas staticcall
+    0x20 0x00 0x44 0x00 dup5 gas staticcall
+    iszero resolve_failed jumpi
+    returndatasize 0x20 lt resolve_failed jumpi
+    0x00 mload
+    swap4 pop pop pop pop
+    resolve_end jump
+v2_call:
+    0xe6a4390500000000000000000000000000000000000000000000000000000000 0x00 mstore
+    dup2 0x04 mstore
+    dup3 0x24 mstore
+    0x20 0x00 0x44 0x00 dup5 gas staticcall
     iszero resolve_failed jumpi
     returndatasize 0x20 lt resolve_failed jumpi
     0x00 mload
@@ -766,9 +870,90 @@ swap_call_failed:
     0x00 0x00 revert
 }
 
+#define macro UNISWAP_V2_CALLBACK() = takes (0) returns (0) {
+    0x01 sload 0x02 eq v2_phase_ok jumpi
+    0xc21d53e8 0x00 mstore
+    0x04 0x1c revert
+v2_phase_ok:
+    0xa4 calldataload
+    0xc4 calldataload
+    0xe4 calldataload
+    0x00
+    dup4 dup4 dup4 dup4
+    swap3
+    RESOLVE_EXPECTED_POOL()
+    caller dup2 eq v2_caller_ok jumpi
+    0xf206255900000000000000000000000000000000000000000000000000000000 0x00 mstore
+    swap1 0x04 mstore
+    caller 0x24 mstore
+    0x44 0x00 revert
+v2_caller_ok:
+    pop
+    0x24 calldataload
+    dup1 0x00 gt v2_send_token0 jumpi
+    pop
+    v2_token0_done jump
+v2_send_token0:
+    caller dup5 swap2 SAFE_TRANSFER()
+v2_token0_done:
+    0x44 calldataload
+    dup1 0x00 gt v2_send_token1 jumpi
+    pop
+    v2_token1_done jump
+v2_send_token1:
+    caller dup4 swap2 SAFE_TRANSFER()
+v2_token1_done:
+    pop pop pop pop pop
+    stop
+}
+
+#define macro HANDLE_ALGEBRA_CALLBACK() = takes (0) returns (0) {
+    0x01 sload 0x02 eq callback_phase_ok jumpi
+    0xc21d53e8 0x00 mstore
+    0x04 0x1c revert
+callback_phase_ok:
+    0x44 calldataload 0x04 add
+    dup1 0x20 add calldataload
+    dup1 0x03 eq proto_ok jumpi
+    dup1 0x04 eq proto_ok jumpi
+    0xf850442b00000000000000000000000000000000000000000000000000000000 0x00 mstore
+    dup2 0x04 mstore
+    0x24 0x00 revert
+proto_ok:
+    dup2 0x40 add calldataload
+    dup3 0x60 add calldataload
+    dup4 0x80 add calldataload
+    dup4 dup4 dup4 dup4
+    swap3
+    RESOLVE_EXPECTED_POOL()
+    caller dup2 eq caller_ok jumpi
+    0xf206255900000000000000000000000000000000000000000000000000000000 0x00 mstore
+    swap1 0x04 mstore
+    caller 0x24 mstore
+    0x44 0x00 revert
+caller_ok:
+    pop
+    0x04 calldataload
+    dup1 0x00 gt send_token0 jumpi
+    pop
+    token0_done jump
+send_token0:
+    caller dup5 swap2 SAFE_TRANSFER()
+token0_done:
+    0x24 calldataload
+    dup1 0x00 gt send_token1 jumpi
+    pop
+    token1_done jump
+send_token1:
+    caller dup4 swap2 SAFE_TRANSFER()
+token1_done:
+    pop pop pop pop pop
+    stop
+}
+
 #define macro CONSTRUCTOR() = takes (0) returns (0) {
-    0x120
-    0x120 codesize sub
+    0x220
+    0x220 codesize sub
     0x00
     codecopy
 
@@ -781,6 +966,14 @@ swap_call_failed:
     0xc0 mload iszero is_zero_revert jumpi
     0xe0 mload iszero is_zero_revert jumpi
     0x100 mload iszero is_zero_revert jumpi
+    0x120 mload iszero is_zero_revert jumpi
+    0x140 mload iszero is_zero_revert jumpi
+    0x160 mload iszero is_zero_revert jumpi
+    0x180 mload iszero is_zero_revert jumpi
+    0x1a0 mload iszero is_zero_revert jumpi
+    0x1c0 mload iszero is_zero_revert jumpi
+    0x1e0 mload iszero is_zero_revert jumpi
+    0x200 mload iszero is_zero_revert jumpi
 
     0x00 mload 0x00 sstore
     0x20 mload 0x07 sstore
@@ -788,9 +981,17 @@ swap_call_failed:
     0x60 mload 0x09 sstore
     0x80 mload 0x0a sstore
     0xa0 mload 0x0b sstore
-    0xc0 mload 0x0e sstore
-    0xe0 mload 0x0c sstore
-    0x100 mload 0x0d sstore
+    0xc0 mload 0x0c sstore
+    0xe0 mload 0x0d sstore
+    0x100 mload 0x0e sstore
+    0x120 mload 0x0f sstore
+    0x140 mload 0x10 sstore
+    0x160 mload 0x11 sstore
+    0x180 mload 0x12 sstore
+    0x1a0 mload 0x13 sstore
+    0x1c0 mload 0x14 sstore
+    0x1e0 mload 0x15 sstore
+    0x200 mload 0x16 sstore
 
     0x01 0x06 sstore
 
@@ -799,6 +1000,29 @@ is_zero_revert:
     0xd92e233d00000000000000000000000000000000000000000000000000000000 0x00 mstore
     0x04 0x00 revert
 constructor_end:
+}
+
+#define macro APPROVE_ALL() = takes (0) returns (0) {
+    ONLY_OWNER()
+    0x04 calldataload
+    0x00 mstore
+    0x07 sload dup1 iszero approve_all_s07 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s07: pop
+    0x08 sload dup1 iszero approve_all_s08 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s08: pop
+    0x09 sload dup1 iszero approve_all_s09 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s09: pop
+    0x0a sload dup1 iszero approve_all_s0a jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s0a: pop
+    0x0b sload dup1 iszero approve_all_s0b jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s0b: pop
+    0x0c sload dup1 iszero approve_all_s0c jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s0c: pop
+    0x0d sload dup1 iszero approve_all_s0d jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s0d: pop
+    0x0e sload dup1 iszero approve_all_s0e jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s0e: pop
+    0x0f sload dup1 iszero approve_all_s0f jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s0f: pop
+    0x10 sload dup1 iszero approve_all_s10 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s10: pop
+    0x11 sload dup1 iszero approve_all_s11 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s11: pop
+    0x12 sload dup1 iszero approve_all_s12 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s12: pop
+    0x13 sload dup1 iszero approve_all_s13 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s13: pop
+    0x14 sload dup1 iszero approve_all_s14 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s14: pop
+    0x15 sload dup1 iszero approve_all_s15 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s15: pop
+    0x16 sload dup1 iszero approve_all_s16 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s16: pop
+    stop
 }
 
 #define macro MAIN() = takes (0) returns (0) {
@@ -812,23 +1036,34 @@ constructor_end:
     dup1 0x4b14e003 eq transfer_all_dest jumpi
     dup1 0xe5711e8b eq rescue_token_dest jumpi
     dup1 0x1291f79d eq rescue_native_dest jumpi
+    dup1 0x3ccfd60b eq withdraw_dest jumpi
+    dup1 0x89476069 eq withdraw_token_dest jumpi
+    dup1 0x0621472c eq approve_all_dest jumpi
     dup1 0x491e69d3 eq execute_arb_dest jumpi
     dup1 0xb8efd6fe eq execute_arb_with_aave_dest jumpi
     dup1 0xf04f2707 eq receive_flash_loan_dest jumpi
     dup1 0x1b11d0ff eq execute_operation_dest jumpi
     dup1 0xfa461e33 eq uniswap_v3_callback_dest jumpi
     dup1 0x2c8958f6 eq algebra_callback_dest jumpi
-    dup1 0xfa483e72 eq swap_callback_dest jumpi
     dup1 0xab6291fe eq lock_acquired_dest jumpi
+    dup1 0x10d1e85c eq uniswap_v2_callback_dest jumpi
 
     dup1 0x158274a5 eq balancer_vault_dest jumpi
     dup1 0x5b549182 eq uniswap_v3_factory_dest jumpi
     dup1 0x669d6be2 eq sushi_v3_factory_dest jumpi
     dup1 0x4dad71d5 eq quickswap_v3_factory_dest jumpi
-    dup1 0x78ed1c8c eq kyber_elastic_factory_dest jumpi
     dup1 0xf8fe9ed9 eq ramses_v3_factory_dest jumpi
     dup1 0xa03e4bc3 eq aave_pool_dest jumpi
     dup1 0xdc4c90d3 eq pool_manager_dest jumpi
+    dup1 0x59d0f713 eq uniswap_v2_factory_dest jumpi
+    dup1 0xea354b7e eq sushi_v2_factory_dest jumpi
+    dup1 0xae2c50be eq quickswap_v2_factory_dest jumpi
+    dup1 0x248c78bf eq dfyn_v2_factory_dest jumpi
+    dup1 0x554dc551 eq apeswap_v2_factory_dest jumpi
+    dup1 0xbaa27cf4 eq meshswap_v2_factory_dest jumpi
+    dup1 0x5428f432 eq jetswap_v2_factory_dest jumpi
+    dup1 0x340cef0a eq comethswap_v2_factory_dest jumpi
+    dup1 0x04075137 eq quickswap_v4_factory_dest jumpi
 
     0x00 0x00 revert
 
@@ -852,6 +1087,12 @@ rescue_token_dest:
     RESCUE_TOKEN()
 rescue_native_dest:
     RESCUE_NATIVE()
+withdraw_dest:
+    WITHDRAW()
+withdraw_token_dest:
+    WITHDRAW_TOKEN()
+approve_all_dest:
+    APPROVE_ALL()
 execute_arb_dest:
     EXECUTE_ARB()
 execute_arb_with_aave_dest:
@@ -863,9 +1104,7 @@ execute_operation_dest:
 uniswap_v3_callback_dest:
     HANDLE_POOL_SWAP_CALLBACK(0x01)
 algebra_callback_dest:
-    HANDLE_POOL_SWAP_CALLBACK(0x03)
-swap_callback_dest:
-    HANDLE_POOL_SWAP_CALLBACK(0x04)
+    HANDLE_ALGEBRA_CALLBACK()
 lock_acquired_dest:
     LOCK_ACQUIRED()
 
@@ -877,12 +1116,30 @@ sushi_v3_factory_dest:
     GET_SLOT(0x09)
 quickswap_v3_factory_dest:
     GET_SLOT(0x0a)
-kyber_elastic_factory_dest:
-    GET_SLOT(0x0b)
 ramses_v3_factory_dest:
-    GET_SLOT(0x0e)
+    GET_SLOT(0x0b)
 aave_pool_dest:
     GET_SLOT(0x0c)
 pool_manager_dest:
     GET_SLOT(0x0d)
+uniswap_v2_factory_dest:
+    GET_SLOT(0x0e)
+sushi_v2_factory_dest:
+    GET_SLOT(0x0f)
+quickswap_v2_factory_dest:
+    GET_SLOT(0x10)
+dfyn_v2_factory_dest:
+    GET_SLOT(0x11)
+apeswap_v2_factory_dest:
+    GET_SLOT(0x12)
+meshswap_v2_factory_dest:
+    GET_SLOT(0x13)
+jetswap_v2_factory_dest:
+    GET_SLOT(0x14)
+comethswap_v2_factory_dest:
+    GET_SLOT(0x15)
+quickswap_v4_factory_dest:
+    GET_SLOT(0x16)
+uniswap_v2_callback_dest:
+    UNISWAP_V2_CALLBACK()
 }
