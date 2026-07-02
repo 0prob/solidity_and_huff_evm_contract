@@ -1,10 +1,11 @@
 [profile.default]
 solc_version = "0.8.34"
+ffi = true
 
 evm_version = "shanghai"     # Modern EVM with PUSH0 support
-via_ir = true                # Yul IR pipeline → smaller bytecode, fixes stack-too-deep
+# via_ir commented out — Huff is pre-compiled; via_ir causes stack-too-deep on large hex constants in deploy scripts
 optimizer = true
-optimizer_runs = 200         # Balanced for deployment + runtime gas
+optimizer_runs = 20000         # Balanced for deployment + runtime gas
 
 # --- Metadata / Determinism ---
 cbor_metadata = false        # Remove CBOR metadata
@@ -18,4 +19,3 @@ libs = ["lib"]
 # --- RPC (optional) ---
 # Leave the default profile RPC-free so pure unit tests run locally.
 # Pass `--rpc-url` (or use a separate profile) only for forked tests/scripts.
-

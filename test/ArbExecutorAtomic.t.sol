@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.34;
 
-import {ArbExecutor, IERC20Minimal, IFlashLoanRecipient} from "../src/ArbExecutor.sol";
+import {ArbExecutor, ArbExecutorCodec, IERC20Minimal, IFlashLoanRecipient} from "../src/ArbExecutor.sol";
 import {HuffDeployer} from "./HuffDeployer.sol";
 
 contract MockToken is IERC20Minimal {
@@ -78,11 +78,7 @@ contract ArbExecutorAtomicTest {
                 address(0x1007), address(0x1008), address(0x1009), address(0x100a),
                 address(0x100b), address(0x100c), address(0x100d), address(0x100e), address(0x100f)
             );
-        bytes memory bytecode = HuffDeployer.concatInit(HuffDeployer.BYTECODE, args1, args2);
-        address addr;
-        assembly {
-            addr := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
+        address addr = HuffDeployer.deploy_with_args("ArbExecutor", bytes.concat(args1, args2));
         require(addr != address(0), "deploy failed");
         return ArbExecutor(payable(addr));
     }
@@ -99,22 +95,30 @@ contract ArbExecutorAtomicTest {
         }
     }
 
-    function _params(ArbExecutor.Call[] memory calls) internal view returns (ArbExecutor.FlashParams memory) {
-        return ArbExecutor.FlashParams({
-            profitToken: address(token),
-            minProfit: 0,
-            deadline: block.timestamp + 1 days,
-            routeHash: keccak256(abi.encode(calls)),
-            calls: calls
-        });
+    function _packedRoute(ArbExecutor.Call[] memory calls) internal view returns (bytes memory) {
+        (bytes memory packedRoute,) =
+            ArbExecutorCodec.buildPackedRoute(address(token), 100, address(token), 0, block.timestamp + 1 days, _toCodecCalls(calls));
+        return packedRoute;
     }
 
-    function _callExecute(ArbExecutor executor, uint256 amount, ArbExecutor.FlashParams memory params)
+    function _toCodecCalls(ArbExecutor.Call[] memory calls)
+        internal
+        pure
+        returns (ArbExecutorCodec.Call[] memory codecCalls)
+    {
+        codecCalls = new ArbExecutorCodec.Call[](calls.length);
+        for (uint256 i = 0; i < calls.length; ++i) {
+            codecCalls[i] =
+                ArbExecutorCodec.Call({target: calls[i].target, value: calls[i].value, data: calls[i].data});
+        }
+    }
+
+    function _callExecute(ArbExecutor executor, ArbExecutor.Call[] memory calls)
         internal
         returns (bool ok, bytes memory data)
     {
-        return address(executor)
-            .call(abi.encodeWithSelector(ArbExecutor.executeArb.selector, address(token), amount, params));
+        bytes memory packedRoute = _packedRoute(calls);
+        return address(executor).call(abi.encodeWithSelector(ArbExecutor.executeArb.selector, packedRoute));
     }
 
     function testExecuteArbRevertsIfFlashLoanCallbackNeverCompletes() public {
@@ -124,7 +128,7 @@ contract ArbExecutorAtomicTest {
         ArbExecutor executor = _deployExecutor(address(new NoCallbackVault()));
         ArbExecutor.Call[] memory calls = _baseCalls(1);
 
-        (bool ok,) = _callExecute(executor, 100, _params(calls));
+        (bool ok,) = _callExecute(executor, calls);
 
         require(!ok, "executeArb must fail closed if flash loan callback does not complete");
         require(recorder.count() == 0, "route calls must not execute without callback");
@@ -137,7 +141,7 @@ contract ArbExecutorAtomicTest {
         ArbExecutor executor = _deployExecutor(address(new CallbackVault()));
         ArbExecutor.Call[] memory calls = _baseCalls(2);
 
-        (bool ok,) = _callExecute(executor, 100, _params(calls));
+        (bool ok,) = _callExecute(executor, calls);
 
         require(!ok, "executeArb must revert when any embedded route call fails");
         require(recorder.count() == 0, "successful earlier route calls must roll back on later failure");
@@ -152,7 +156,7 @@ contract ArbExecutorAtomicTest {
         ArbExecutor executor = _deployExecutor(address(vault));
         ArbExecutor.Call[] memory calls = _baseCalls(1);
 
-        (bool ok, bytes memory data) = _callExecute(executor, 100, _params(calls));
+        (bool ok, bytes memory data) = _callExecute(executor, calls);
 
         require(ok, string(data));
         require(recorder.count() == 1, "successful route call should execute once");

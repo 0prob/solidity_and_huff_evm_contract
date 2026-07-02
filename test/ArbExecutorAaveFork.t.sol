@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.34;
 
-import {ArbExecutor} from "../src/ArbExecutor.sol";
+import {ArbExecutor, ArbExecutorCodec} from "../src/ArbExecutor.sol";
 import {Test} from "forge-std/Test.sol";
 
 import {HuffDeployer} from "./HuffDeployer.sol";
@@ -30,7 +30,7 @@ contract ArbExecutorAaveForkTest is Test {
     address constant USDC = 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359;
 
     function setUp() public {
-        string memory rpc = vm.envOr("POLYGON_RPC_URL", string("https://polygon-mainnet.core.chainstack.com/03efdc1db374a4df08d42e72b1408637"));
+        string memory rpc = vm.envOr("POLYGON_RPC_URL", string("https://polygon-bor-rpc.publicnode.com"));
         vm.createSelectFork(rpc);
 
         bytes memory args1 = HuffDeployer.encode1(
@@ -41,11 +41,7 @@ contract ArbExecutorAaveForkTest is Test {
                 UNISWAP_V2_FACTORY, SUSHISWAP_V2_FACTORY, QUICKSWAP_V2_FACTORY, DFYN_V2_FACTORY,
                 APESWAP_V2_FACTORY, MESHSWAP_V2_FACTORY, JETSWAP_V2_FACTORY, COMETHSWAP_V2_FACTORY, QUICKSWAP_V4_FACTORY
             );
-        bytes memory bytecode = HuffDeployer.concatInit(HuffDeployer.BYTECODE, args1, args2);
-        address addr;
-        assembly {
-            addr := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
+        address addr = HuffDeployer.deploy_with_args_as("ArbExecutor", bytes.concat(args1, args2), address(this));
         require(addr != address(0), "deploy failed");
         executor = ArbExecutor(payable(addr));
     }
@@ -72,32 +68,24 @@ contract ArbExecutorAaveForkTest is Test {
 
     function testExecuteArbWithAaveRevertsWithEmptyRoute() public {
         ArbExecutor.Call[] memory calls;
-        ArbExecutor.FlashParams memory params = ArbExecutor.FlashParams({
-            profitToken: USDC,
-            minProfit: 0,
-            deadline: block.timestamp + 1 days,
-            routeHash: keccak256(abi.encode(calls)),
-            calls: calls
-        });
+        (bytes memory packedRoute,) = ArbExecutorCodec.buildPackedRoute(
+            USDC, 1000, USDC, 0, block.timestamp + 1 days, _toCodecCalls(calls)
+        );
 
         vm.expectRevert(ArbExecutor.EmptyRoute.selector);
-        executor.executeArbWithAave(USDC, 1000, params);
+        executor.executeArbWithAave(packedRoute);
     }
 
     function testExecuteArbWithAaveRevertsIfNotAuthorized() public {
         ArbExecutor.Call[] memory calls;
-        ArbExecutor.FlashParams memory params = ArbExecutor.FlashParams({
-            profitToken: USDC,
-            minProfit: 0,
-            deadline: block.timestamp + 1 days,
-            routeHash: keccak256(abi.encode(calls)),
-            calls: calls
-        });
+        (bytes memory packedRoute,) = ArbExecutorCodec.buildPackedRoute(
+            USDC, 1000, USDC, 0, block.timestamp + 1 days, _toCodecCalls(calls)
+        );
 
         // Call from a non-owner, non-operator address
         vm.prank(address(0xdeadbeef));
         vm.expectRevert(ArbExecutor.Unauthorized.selector);
-        executor.executeArbWithAave(USDC, 1000, params);
+        executor.executeArbWithAave(packedRoute);
     }
 
     function testAavePoolIsContract() public {
@@ -106,5 +94,17 @@ contract ArbExecutorAaveForkTest is Test {
             codeSize := extcodesize(AAVE_POOL)
         }
         assertGt(codeSize, 0, "Aave Pool must be a deployed contract on the forked chain");
+    }
+
+    function _toCodecCalls(ArbExecutor.Call[] memory calls)
+        internal
+        pure
+        returns (ArbExecutorCodec.Call[] memory codecCalls)
+    {
+        codecCalls = new ArbExecutorCodec.Call[](calls.length);
+        for (uint256 i = 0; i < calls.length; ++i) {
+            codecCalls[i] =
+                ArbExecutorCodec.Call({target: calls[i].target, value: calls[i].value, data: calls[i].data});
+        }
     }
 }

@@ -15,11 +15,7 @@ contract ArbExecutorPrintTest is Test {
                 address(0x9999), address(0xaaaa), address(0xbbbb), address(0xcccc),
                 address(0xdddd), address(0xeeee), address(0xffff), address(0x1000), address(0x1001)
             );
-        bytes memory bytecode = HuffDeployer.concatInit(HuffDeployer.BYTECODE, args1, args2);
-        address addr;
-        assembly {
-            addr := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
+        address addr = HuffDeployer.deploy_with_args_as("ArbExecutor", bytes.concat(args1, args2), address(this));
         console.log("Deployed address:", addr);
         if (addr != address(0)) {
             console.log("Slot 0 (owner):", uint256(vm.load(addr, bytes32(uint256(0)))));

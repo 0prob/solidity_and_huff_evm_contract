@@ -30,7 +30,7 @@ contract ArbExecutorDebug is Test {
     address constant QUICKSWAP_V4_FACTORY = 0x0000000000000000000000000000000000000001;
 
     function setUp() public {
-        string memory rpc = vm.envOr("POLYGON_RPC_URL", string("https://polygon-mainnet.core.chainstack.com/03efdc1db374a4df08d42e72b1408637"));
+        string memory rpc = vm.envOr("POLYGON_RPC_URL", string("https://polygon-bor-rpc.publicnode.com"));
         vm.createSelectFork(rpc);
         
         bytes memory args1 = HuffDeployer.encode1(
@@ -41,11 +41,7 @@ contract ArbExecutorDebug is Test {
                 UNISWAP_V2_FACTORY, SUSHISWAP_V2_FACTORY, QUICKSWAP_V2_FACTORY, DFYN_V2_FACTORY,
                 APESWAP_V2_FACTORY, MESHSWAP_V2_FACTORY, JETSWAP_V2_FACTORY, COMETHSWAP_V2_FACTORY, QUICKSWAP_V4_FACTORY
             );
-        bytes memory bytecode = HuffDeployer.concatInit(HuffDeployer.BYTECODE, args1, args2);
-        address addr;
-        assembly {
-            addr := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
+        address addr = HuffDeployer.deploy_with_args_as("ArbExecutor", bytes.concat(args1, args2), OWNER);
         require(addr != address(0), "deploy failed");
         vm.etch(OWNER, addr.code);
         

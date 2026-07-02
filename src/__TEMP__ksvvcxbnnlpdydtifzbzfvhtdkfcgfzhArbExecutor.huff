@@ -1,3 +1,5 @@
+
+
 #define macro GET_SLOT(slot) = takes (0) returns (0) {
     <slot> sload
     0x00 mstore
@@ -264,27 +266,24 @@ wtoken_xfer_failed:
 }
 
 #define macro EXECUTE_CALLS() = takes (1) returns (0) {
-    // Packed layout: count, then repeated target/value/dataLen/data.
-    dup1 calldataload
-    swap1 0x20 add
-    0x00
+    // stack in: [calls_ptr]
+    // stack out: []
+    dup1 calldataload                                 // [calls_ptr, num_calls]
+    0x00                                               // [i=0, calls_ptr, num_calls]
 execute_calls_loop:
-    dup1 dup4 eq execute_calls_done jumpi
-    dup2 calldataload
-    dup3 0x20 add calldataload
-    dup4 0x40 add calldataload
-    dup3 0x80 mstore
-    dup2 0xa0 mstore
-    dup1 dup6 0x60 add 0x100 calldatacopy
-    0x00 0x00 dup3 0x100 0xa0 mload 0x80 mload gas call
+    dup2 dup2 eq execute_calls_done jumpi              // [i, calls_ptr, num_calls]
+    dup1 0x20 mul 0x20 add dup4 add calldataload       // [+ call_data_offset]
+    dup4 0x20 add add                                  // [+ to]
+    dup1 calldataload                                  // [+ value, to, ...]
+    dup2 0x20 add calldataload                         // [+ arg_len, value, to, ...]
+    dup3 0x40 add calldataload                         // [+ call_data_len, arg_len, value, to, ...]
+    dup4 add                                           // [+ call_data_end, ...]
+    dup1 calldataload                                  // [+ inner_call_data_len, call_data_end, ...]
+    dup1 dup3 0x20 add 0x100 calldatacopy              // [+ inner_call_data_len, ...]
+    0x00 0x00 dup3 0x100 dup7 dup9 gas call            // [success, ...]
     iszero execute_call_failed jumpi
-    swap2 pop pop
-    dup1 dup4 add 0x60 add
-    0x00 mstore
-    pop
-    swap1 pop
+    pop pop pop pop pop
     0x01 add
-    0x00 mload swap1
     execute_calls_loop jump
 execute_call_failed:
     0x0f43457300000000000000000000000000000000000000000000000000000000 0x00 mstore
@@ -332,32 +331,34 @@ phase_idle_ok:
     dup1 0xc0 add dup1 calldataload                   // [params_ptr, calls_ptr, num_calls]
     dup1 iszero empty_route jumpi
     0x0c lt too_many_calls jumpi
-    0x64 calldataload iszero flash_loan_required jumpi
-    0x44 calldataload iszero zero_address jumpi
-    0x84 calldataload iszero zero_address jumpi
-    0xc0 0x24 calldataload sub                      // [calls_bytes_len, params_ptr, calls_ptr, num_calls]
+    dup3 0x20 add calldataload iszero flash_loan_required jumpi
+    dup3 calldataload iszero zero_address jumpi
+    dup3 0x40 add calldataload iszero zero_address jumpi
+    dup2 calldatasize sub                           // [calls_bytes_len, params_ptr, calls_ptr, num_calls]
     dup1 0x00 mstore                                // store calls_bytes_len at mem[0x00]
-    dup1 0x104 0x20 calldatacopy                    // copy packed calls to mem[0x20]
-    dup1 0x20 sha3                                  // keccak256(mem[0x20:0x20+calls_bytes_len])
-    0xe4 calldataload                               // [expected_hash, hash, params_ptr, calls_ptr, num_calls]
+    dup1 dup3 0x20 calldatacopy                     // copy calls data to mem[0x20]
+    0x20 sha3                                       // keccak256(mem[0x20:0x20+calls_bytes_len])
+                                                    // stack: [hash, params_ptr, calls_ptr, num_calls]
+
+    dup2 0xa0 add calldataload                      // [expected_hash, hash, params_ptr, calls_ptr, num_calls]
     eq route_hash_ok jumpi
     0xc858adff 0x00 mstore
     0x04 0x1c revert
 route_hash_ok:
     // stack: [params_ptr, calls_ptr, num_calls]
-    0x84 calldataload                               // [profitToken, params_ptr, calls_ptr, num_calls]
+    dup3 0x40 add calldataload                      // [profitToken, params_ptr, calls_ptr, num_calls]
     0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
     address 0x04 mstore
-    0x20 0x00 0x24 0x00 dup5 gas staticcall          // [success, profitToken, ...]
+    0x20 0x00 0x24 0x00 dup8 gas staticcall          // [success, profitToken, ...]
     iszero balance_failed jumpi
     returndatasize 0x20 lt balance_failed jumpi
     0x00 mload                                       // [balance, profitToken, params_ptr, calls_ptr, num_calls]
-    dup1 0x05 sstore                                 // starting profit-token balance
 
     0x01 0x01 sstore                                 // phase=1
-    0xe4 calldataload 0x02 sstore                    // routeHash
-    0x84 calldataload 0x03 sstore                    // profitToken
-    0xa4 calldataload 0x04 sstore                    // minProfit
+    dup3 0xa0 add calldataload 0x02 sstore            // routeHash
+    dup4 0x40 add calldataload 0x03 sstore            // profitToken
+    dup3 0x60 add calldataload 0x04 sstore            // minProfit
+    dup3 0x80 add calldataload 0x05 sstore            // deadline
 
     0x5c38449e00000000000000000000000000000000000000000000000000000000 0x80 mstore
     address 0x84 mstore
@@ -365,13 +366,13 @@ route_hash_ok:
     0xc0 0xc4 mstore
     0x100 0xe4 mstore
     0x01 0x104 mstore
-    0x44 calldataload 0x124 mstore
+    dup3 calldataload 0x124 mstore
     0x01 0x144 mstore
-    0x64 calldataload 0x164 mstore
+    dup3 0x20 add calldataload 0x164 mstore
 
-    0x24 calldataload
+    dup3 calldatasize sub
     dup1 0x184 mstore
-    dup1 0x44 0x1a4 calldatacopy
+    dup1 dup4 0x1a4 calldatacopy
     0x124 add
     0x00 0x00 swap2 0x80 0x00 0x07 sload gas call
     iszero balancer_call_failed jumpi
@@ -380,19 +381,20 @@ route_hash_ok:
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_idle_after_ok:
-    dup2
+    // stack: [balance, profitToken, params_ptr, calls_ptr, num_calls]
+    dup4                                               // [..., profitToken]
     0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
     address 0x04 mstore
     0x20 0x00 0x24 0x00 dup5 gas staticcall
     iszero balance_failed jumpi
     returndatasize 0x20 lt balance_failed jumpi
-    0x00 mload
+    0x00 mload                                        // [balanceAfter, balance, profitToken, params_ptr, calls_ptr, num_calls]
     
-    dup2 dup2 lt iszero profit_calc jumpi
-    0x00
+    dup6 dup5 gt profit_calc jumpi                    // if balanceAfter > balance, calc profit
+    0x00                                               // profit = 0
     profit_done jump
 profit_calc:
-    dup2 dup2 sub
+    dup6 dup5 sub                                      // profit = balanceAfter - balance
 profit_done:
     0x00 0x01 sstore
     0x00 0x02 sstore
@@ -403,9 +405,9 @@ profit_done:
     dup1 0x80 mstore
     0x07 sload 0xa0 mstore
 
-    dup6 0x60 add calldataload
-    dup5
-    caller
+    dup3 0xa0 add calldataload                        // routeHash
+    dup4                                               // profitToken
+    caller                                             // user
     0x2790eac69d46d24bb29b55a23b12e2e49076dc2a9fdcb340e641de33fca2c5dd
     0x40 0x80
     log4
@@ -445,34 +447,34 @@ phase_idle_ok:
     dup1 0xc0 add dup1 calldataload                   // [params_ptr, calls_ptr, num_calls]
     dup1 iszero empty_route jumpi
     0x0c lt too_many_calls jumpi
-    0x64 calldataload iszero flash_loan_required jumpi
-    0x44 calldataload iszero zero_address jumpi
-    0x84 calldataload iszero zero_address jumpi
+    dup3 0x20 add calldataload iszero flash_loan_required jumpi
+    dup3 calldataload iszero zero_address jumpi
+    dup3 0x40 add calldataload iszero zero_address jumpi
 
-    0xc0 0x24 calldataload sub                        // [calls_len, params_ptr, calls_ptr, num_calls]
+    dup2 calldatasize sub                             // [calls_len, params_ptr, calls_ptr, num_calls]
     dup1 0x00 mstore                                  // store calls_len at mem[0x00]
-    dup1 0x104 0x20 calldatacopy                      // copy packed calls to mem[0x20]
-    dup1 0x20 sha3                                   // [route_hash, params_ptr, calls_ptr, num_calls]
+    dup1 dup3 0x20 calldatacopy                       // copy calls data to mem[0x20]
+    0x20 add 0x00 sha3                                // [route_hash, params_ptr, calls_ptr, num_calls]
 
-    0xe4 calldataload                                 // [+ expected_hash]
+    dup2 0xa0 add calldataload                        // [+ expected_hash]
     eq route_hash_ok jumpi
     0xc858adff 0x00 mstore
     0x04 0x1c revert
 route_hash_ok:
     // stack: [params_ptr, calls_ptr, num_calls]
-    0x84 calldataload                                 // [profitToken, params_ptr, calls_ptr, num_calls]
+    dup3 0x40 add calldataload                        // [profitToken, params_ptr, calls_ptr, num_calls]
     0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
     address 0x04 mstore
      0x20 0x00 0x24 0x00 dup5 gas staticcall
     iszero balance_failed jumpi
     returndatasize 0x20 lt balance_failed jumpi
     0x00 mload                                         // [balance, profitToken, params_ptr, calls_ptr, num_calls]
-    dup1 0x05 sstore                                   // starting profit-token balance
 
     0x01 0x01 sstore                                   // phase=1
-    0xe4 calldataload 0x02 sstore                     // routeHash
-    0x84 calldataload 0x03 sstore                     // profitToken
-    0xa4 calldataload 0x04 sstore                     // minProfit
+    dup5 0xa0 add calldataload 0x02 sstore              // routeHash
+    dup5 0x40 add calldataload 0x03 sstore              // profitToken
+    dup5 0x60 add calldataload 0x04 sstore              // minProfit
+    dup5 0x80 add calldataload 0x05 sstore              // deadline
 
     0xab9c4b5d00000000000000000000000000000000000000000000000000000000 0x80 mstore
     address 0x84 mstore
@@ -484,15 +486,15 @@ route_hash_ok:
     0x00 0x144 mstore
 
     0x01 0x164 mstore
-    0x44 calldataload 0x184 mstore
+    dup3 calldataload 0x184 mstore
     0x01 0x1a4 mstore
-    0x64 calldataload 0x1c4 mstore
+    dup3 0x20 add calldataload 0x1c4 mstore
     0x01 0x1e4 mstore
     0x00 0x204 mstore
 
-    0x24 calldataload
+    dup4 calldatasize sub
     dup1 0x224 mstore
-    dup1 0x44 0x244 calldatacopy
+    dup1 dup6 0x244 calldatacopy
     0x1c4 add
     0x00 0x00 swap2 0x80 0x00 0x0c sload gas call
     iszero aave_call_failed jumpi
@@ -582,7 +584,7 @@ min_profit_ok:
     dup1 0x80 add calldataload timestamp gt deadline_expired jumpi
 
     0x02 0x01 sstore                               // phase=2
-    0xc0 add                                        // [calls_ptr]
+    dup1 0xc0 add calldataload add                  // [calls_ptr]
     EXECUTE_CALLS()                                 // []
 
     0x04 calldataload 0x04 add                      // [tokens_ptr]
@@ -643,7 +645,7 @@ min_profit_ok:
     dup1 0x80 add calldataload timestamp gt deadline_expired jumpi
 
     0x02 0x01 sstore
-    0xc0 add
+    dup1 0xc0 add calldataload add
     EXECUTE_CALLS()
 
     0x04 calldataload 0x24 add calldataload
@@ -1045,8 +1047,8 @@ constructor_end:
     dup1 0x3ccfd60b eq withdraw_dest jumpi
     dup1 0x89476069 eq withdraw_token_dest jumpi
     dup1 0x0621472c eq approve_all_dest jumpi
-    dup1 0x5fa6519d eq execute_arb_dest jumpi
-    dup1 0x540285ec eq execute_arb_with_aave_dest jumpi
+    dup1 0x491e69d3 eq execute_arb_dest jumpi
+    dup1 0xb8efd6fe eq execute_arb_with_aave_dest jumpi
     dup1 0xf04f2707 eq receive_flash_loan_dest jumpi
     dup1 0x1b11d0ff eq execute_operation_dest jumpi
     dup1 0xfa461e33 eq uniswap_v3_callback_dest jumpi

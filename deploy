@@ -6,7 +6,7 @@ set -euo pipefail
 : "${OWNER:?OWNER not set. Please set the OWNER env variable.}"
 
 echo "Broadcasting ArbExecutor contract..."
-exec forge script script/ArbExecutor.s.sol \
+exec forge script script/Deploy.s.sol \
   --rpc-url "$RPC_URL" \
   --private-key "$PRIVATE_KEY" \
   --broadcast

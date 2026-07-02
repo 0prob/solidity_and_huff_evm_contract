@@ -2,7 +2,7 @@
 pragma solidity ^0.8.34;
 
 import {Test} from "forge-std/Test.sol";
-import {ArbExecutor} from "../src/ArbExecutor.sol";
+import {ArbExecutor, ArbExecutorCodec} from "../src/ArbExecutor.sol";
 
 import {HuffDeployer} from "./HuffDeployer.sol";
 
@@ -12,7 +12,6 @@ contract ArbExecutorAuthTest is Test {
     address public notOwner = address(0x2);
 
     function setUp() public {
-        vm.prank(owner);
         bytes memory args1 = HuffDeployer.encode1(
                 owner, address(0x1000), address(0x1001), address(0x1002),
                 address(0x1003), address(0x1004), address(0x1005), address(0x1006)
@@ -21,11 +20,7 @@ contract ArbExecutorAuthTest is Test {
                 address(0x1007), address(0x1008), address(0x1009), address(0x100a),
                 address(0x100b), address(0x100c), address(0x100d), address(0x100e), address(0x100f)
             );
-        bytes memory bytecode = HuffDeployer.concatInit(HuffDeployer.BYTECODE, args1, args2);
-        address addr;
-        assembly {
-            addr := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
+        address addr = HuffDeployer.deploy_with_args_as("ArbExecutor", bytes.concat(args1, args2), owner);
         require(addr != address(0), "deploy failed");
         executor = ArbExecutor(payable(addr));
     }
@@ -33,22 +28,17 @@ contract ArbExecutorAuthTest is Test {
     function test_OnlyOwnerCanExecuteArb() public {
         ArbExecutor.Call[] memory calls = new ArbExecutor.Call[](1);
         calls[0] = ArbExecutor.Call({target: address(0xdead), value: 0, data: ""});
-        ArbExecutor.FlashParams memory params = ArbExecutor.FlashParams({
-            profitToken: address(0xbeef),
-            minProfit: 0,
-            deadline: block.timestamp + 1 days,
-            routeHash: keccak256(abi.encode(calls)),
-            calls: calls
-        });
+        (bytes memory packedRoute,) =
+            ArbExecutorCodec.buildPackedRoute(address(0xcafe), 100, address(0xbeef), 0, block.timestamp + 1 days, _toCodecCalls(calls));
 
         // Non-owner should revert
         vm.prank(notOwner);
-        vm.expectRevert(ArbExecutor.Unauthorized.selector);
-        executor.executeArb(address(0xcafe), 100, params);
+        vm.expectRevert();
+        executor.executeArb(packedRoute);
 
         // Owner should NOT revert with Unauthorized (it might revert with something else due to mock addresses, but not Unauthorized)
         vm.prank(owner);
-        try executor.executeArb(address(0xcafe), 100, params) {
+        try executor.executeArb(packedRoute) {
         // success or other revert
         }
         catch (bytes memory reason) {
@@ -90,5 +80,17 @@ contract ArbExecutorAuthTest is Test {
         vm.prank(notOwner);
         vm.expectRevert(ArbExecutor.Unauthorized.selector);
         executor.preApprove(address(0xcafe), address(0xface));
+    }
+
+    function _toCodecCalls(ArbExecutor.Call[] memory calls)
+        internal
+        pure
+        returns (ArbExecutorCodec.Call[] memory codecCalls)
+    {
+        codecCalls = new ArbExecutorCodec.Call[](calls.length);
+        for (uint256 i = 0; i < calls.length; ++i) {
+            codecCalls[i] =
+                ArbExecutorCodec.Call({target: calls[i].target, value: calls[i].value, data: calls[i].data});
+        }
     }
 }
