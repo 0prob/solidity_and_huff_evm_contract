@@ -82,7 +82,7 @@ contract ArbExecutorAaveForkTest is Test {
             USDC, 1000, USDC, 0, block.timestamp + 1 days, _toCodecCalls(calls)
         );
 
-        // Call from a non-owner, non-operator address
+        // Call from a non-owner address
         vm.prank(address(0xdeadbeef));
         vm.expectRevert(ArbExecutor.Unauthorized.selector);
         executor.executeArbWithAave(packedRoute);

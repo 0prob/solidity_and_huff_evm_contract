@@ -73,14 +73,6 @@ library HuffDeployer {
         revert("invalid hex");
     }
 
-    function concatInit(bytes memory a, bytes memory b, bytes memory c) internal pure returns (bytes memory) {
-        return abi.encodePacked(a, b, c);
-    }
-
-    function concatInit2(bytes memory a, bytes memory b) internal pure returns (bytes memory) {
-        return abi.encodePacked(a, b);
-    }
-
     function encode1(address a0, address a1, address a2, address a3, address a4, address a5, address a6, address a7)
         internal
         pure

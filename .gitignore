@@ -1,6 +1,17 @@
+# Build artifacts
 out/
 cache/
 broadcast/
+
+# Libraries (install via forge install)
 lib/
+
+# Environment
 .env
 node_modules/
+
+# OS junk
+.DS_Store
+*.swp
+*.swo
+*~
