@@ -816,59 +816,78 @@ token1_done:
     stop
 }
 
-#define macro LOCK_ACQUIRED() = takes (0) returns (0) {
-    caller 0x0d sload eq lock_sender_ok jumpi
+#define macro UNLOCK_CALLBACK() = takes (0) returns (0) {
+    caller 0x0d sload eq unlock_sender_ok jumpi
     0xc21d53e8 0x00 mstore
     0x04 0x1c revert
-lock_sender_ok:
-    0x01 sload 0x02 eq lock_phase_ok jumpi
+unlock_sender_ok:
+    0x01 sload 0x02 eq unlock_phase_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
-lock_phase_ok:
-    0x04 calldataload 0x04 add
-    0x20 add
-    0x6c70970e00000000000000000000000000000000000000000000000000000000 0x80 mstore
-    0x100 dup2 0x84 calldatacopy
+unlock_phase_ok:
+    0x04 calldataload 0x04 add 0x20 add
+    dup1 0x1c0 mstore
+
+    0xf3cd914c00000000000000000000000000000000000000000000000000000000 0x80 mstore
+    0x84 dup1 0x100 add 0xa0 calldatacopy
+    0x124 dup1 0x160 add 0x60 calldatacopy
     0x120 0x184 mstore
     0x00 0x1a4 mstore
-    0x40 0x80 0x1c4 0x80 0x00 0x0d sload gas call
+    0x20 0x80 0x144 0x80 0x00 0x0d sload gas call
     iszero swap_call_failed jumpi
-    
+    returndatasize 0x20 lt swap_call_failed jumpi
+
     0x80 mload
-    0xa0 mload
-    dup3 calldataload
-    dup4 0x20 add calldataload
-
-    dup4 iszero delta0_zero jumpi
-    dup4 0x00 slt delta0_negative jumpi
-    0x6a256b2900000000000000000000000000000000000000000000000000000000 0x00 mstore
-    dup2 0x04 mstore
-    0x00 0x00 0x24 0x00 0x00 0x0d sload gas call pop
-    delta0_zero jump
-delta0_negative:
-    0x00 dup5 sub
+    dup1 0x80 sar
+    dup1 iszero delta0_done jumpi
+    dup1 0x00 slt delta0_owe jumpi
+    0x1c0 mload 0x100 add calldataload
+    swap2
     0x0b0d9c0900000000000000000000000000000000000000000000000000000000 0x00 mstore
-    dup3 0x04 mstore
+    swap1 0x04 mstore
     address 0x24 mstore
     swap1 0x44 mstore
     0x00 0x00 0x64 0x00 0x00 0x0d sload gas call pop
-delta0_zero:
-
-    dup3 iszero delta1_zero jumpi
-    dup3 0x00 slt delta1_negative jumpi
-    0x6a256b2900000000000000000000000000000000000000000000000000000000 0x00 mstore
-    dup1 0x04 mstore
+    pop pop
+    delta0_done jump
+delta0_owe:
+    0x00 swap1 sub
+    0x1c0 mload 0x100 add calldataload
+    swap1
+    0xa584119400000000000000000000000000000000000000000000000000000000 0x00 mstore
+    swap1 0x04 mstore
     0x00 0x00 0x24 0x00 0x00 0x0d sload gas call pop
-    delta1_zero jump
-delta1_negative:
-    0x00 dup4 sub
+    0x0d sload swap2 SAFE_TRANSFER()
+    0x11da60b400000000000000000000000000000000000000000000000000000000 0x00 mstore
+    0x00 0x00 0x04 0x00 0x00 0x0d sload gas call pop
+    pop
+delta0_done:
+
+    0x80 mload 0x0f signextend
+    dup1 iszero delta1_done jumpi
+    dup1 0x00 slt delta1_owe jumpi
+    0x1c0 mload 0x120 add calldataload
+    swap2
     0x0b0d9c0900000000000000000000000000000000000000000000000000000000 0x00 mstore
-    dup2 0x04 mstore
+    swap1 0x04 mstore
     address 0x24 mstore
     swap1 0x44 mstore
     0x00 0x00 0x64 0x00 0x00 0x0d sload gas call pop
-delta1_zero:
-    pop pop pop pop pop
+    pop
+    unlock_return jump
+delta1_owe:
+    0x00 swap1 sub
+    0x1c0 mload 0x120 add calldataload
+    swap1
+    0xa584119400000000000000000000000000000000000000000000000000000000 0x00 mstore
+    swap1 0x04 mstore
+    0x00 0x00 0x24 0x00 0x00 0x0d sload gas call pop
+    0x0d sload swap2 SAFE_TRANSFER()
+    0x11da60b400000000000000000000000000000000000000000000000000000000 0x00 mstore
+    0x00 0x00 0x04 0x00 0x00 0x0d sload gas call pop
+    pop
+delta1_done:
+unlock_return:
     0x20 0x00 mstore
     0x00 0x20 mstore
     0x40 0x00 return
@@ -1051,7 +1070,7 @@ constructor_end:
     dup1 0x1b11d0ff eq execute_operation_dest jumpi
     dup1 0xfa461e33 eq uniswap_v3_callback_dest jumpi
     dup1 0x2c8958f6 eq algebra_callback_dest jumpi
-    dup1 0xab6291fe eq lock_acquired_dest jumpi
+    dup1 0x91dd7346 eq unlock_callback_dest jumpi
     dup1 0x10d1e85c eq uniswap_v2_callback_dest jumpi
 
     dup1 0x158274a5 eq balancer_vault_dest jumpi
@@ -1111,8 +1130,8 @@ uniswap_v3_callback_dest:
     HANDLE_POOL_SWAP_CALLBACK(0x01)
 algebra_callback_dest:
     HANDLE_ALGEBRA_CALLBACK()
-lock_acquired_dest:
-    LOCK_ACQUIRED()
+unlock_callback_dest:
+    UNLOCK_CALLBACK()
 
 balancer_vault_dest:
     GET_SLOT(0x07)
