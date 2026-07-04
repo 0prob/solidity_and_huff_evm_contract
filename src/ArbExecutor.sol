@@ -7,6 +7,7 @@ interface IERC20Minimal {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
+/// @dev Balancer V2 IFlashLoanRecipient — pkg/interfaces/contracts/vault/IFlashLoanRecipient.sol
 interface IFlashLoanRecipient {
     function receiveFlashLoan(
         IERC20Minimal[] memory tokens,
@@ -14,6 +15,67 @@ interface IFlashLoanRecipient {
         uint256[] memory feeAmounts,
         bytes memory userData
     ) external;
+}
+
+/// @dev Aave V3 IFlashLoanSimpleReceiver — misc/flashloan/interfaces/IFlashLoanSimpleReceiver.sol
+interface IFlashLoanSimpleReceiver {
+    function executeOperation(
+        address asset,
+        uint256 amount,
+        uint256 premium,
+        address initiator,
+        bytes calldata params
+    ) external returns (bool);
+}
+
+/// @dev Aave V3 IPool flash-loan entry — interfaces/IPool.sol
+interface IAaveV3Pool {
+    function flashLoanSimple(
+        address receiverAddress,
+        address asset,
+        uint256 amount,
+        bytes calldata params,
+        uint16 referralCode
+    ) external;
+}
+
+/// @dev Balancer V2 IVault swap + flash loan surface — pkg/interfaces/contracts/vault/IVault.sol
+interface IBalancerVault {
+    enum SwapKind {
+        GIVEN_IN,
+        GIVEN_OUT
+    }
+
+    struct BatchSwapStep {
+        bytes32 poolId;
+        uint256 assetInIndex;
+        uint256 assetOutIndex;
+        uint256 amount;
+        bytes userData;
+    }
+
+    struct FundManagement {
+        address sender;
+        bool fromInternalBalance;
+        address payable recipient;
+        bool toInternalBalance;
+    }
+
+    function flashLoan(
+        IFlashLoanRecipient recipient,
+        IERC20Minimal[] memory tokens,
+        uint256[] memory amounts,
+        bytes memory userData
+    ) external;
+
+    function batchSwap(
+        SwapKind kind,
+        BatchSwapStep[] memory swaps,
+        address[] memory assets,
+        FundManagement memory funds,
+        int256[] memory limits,
+        uint256 deadline
+    ) external payable returns (int256[] memory assetDeltas);
 }
 
 library ArbExecutorCodec {
@@ -62,7 +124,7 @@ library ArbExecutorCodec {
     }
 }
 
-abstract contract ArbExecutor is IFlashLoanRecipient {
+abstract contract ArbExecutor is IFlashLoanRecipient, IFlashLoanSimpleReceiver {
     struct Call {
         address target;
         uint256 value;
@@ -94,14 +156,18 @@ abstract contract ArbExecutor is IFlashLoanRecipient {
     error TransferFailed(address token, address to, uint256 amount);
     error ApproveFailed(address token, address spender);
     error ZeroAddress();
+    error BalancerVaultReentrancy();
 
     function owner() external view virtual returns (address);
     function aavePool() external view virtual returns (address);
     function approveIfNeeded(address token, address spender, uint256 amount) external virtual;
     function preApprove(address token, address spender) external virtual;
     function transferAll(address token, address to) external virtual;
-    function executeArb(bytes calldata packedRoute) external virtual;
-    function executeArbWithAave(bytes calldata packedRoute) external virtual;
+    function executeArb(bytes calldata packedRoute) external virtual returns (uint256 realizedProfit);
+    /// @notice Run a route without a flash loan. Use for Balancer `batchSwap` / flash-swap routes
+    ///         (the Vault is non-reentrant and cannot be called from `receiveFlashLoan`).
+    function executeArbDirect(bytes calldata packedRoute) external virtual returns (uint256 realizedProfit);
+    function executeArbWithAave(bytes calldata packedRoute) external virtual returns (uint256 realizedProfit);
     function executeOperation(address asset, uint256 amount, uint256 premium, address initiator, bytes calldata params)
         external
         virtual

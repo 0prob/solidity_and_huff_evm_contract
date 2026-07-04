@@ -88,6 +88,12 @@ contract ArbExecutorAaveForkTest is Test {
         executor.executeArbWithAave(packedRoute);
     }
 
+    function testAavePoolExposesFlashLoanPremium() public view {
+        (bool ok, bytes memory result) = AAVE_POOL.staticcall(abi.encodeWithSignature("FLASHLOAN_PREMIUM_TOTAL()"));
+        assertTrue(ok, "FLASHLOAN_PREMIUM_TOTAL staticcall failed");
+        assertGt(result.length, 0, "FLASHLOAN_PREMIUM_TOTAL returned no data");
+    }
+
     function testAavePoolIsContract() public {
         uint256 codeSize;
         assembly {

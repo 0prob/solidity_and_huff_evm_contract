@@ -67,7 +67,7 @@ allowance_end:
 
 #define macro SAFE_APPROVE() = takes (3) returns (0) {
     // stack: [amount, spender, token]
-    0x095fc61500000000000000000000000000000000000000000000000000000000 0x00 mstore
+    0x095ea7b300000000000000000000000000000000000000000000000000000000 0x00 mstore
     dup2 0x04 mstore
     dup1 0x24 mstore
     0x20 0x00 0x44 0x00 0x00 dup8 gas call
@@ -263,6 +263,30 @@ wtoken_xfer_failed:
     0x64 0x00 revert
 }
 
+#define macro VALIDATE_NO_VAULT_CALLS() = takes (1) returns (0) {
+    // Reject routes that call the Balancer Vault during a Vault flash-loan callback.
+    dup1 calldataload
+    swap1 0x20 add
+    0x00
+validate_vault_loop:
+    dup1 dup4 eq validate_vault_done jumpi
+    dup2 calldataload
+    dup1 0x07 sload eq validate_vault_revert jumpi
+    dup2 0x40 add calldataload
+    dup1 dup4 add 0x60 add
+    0x00 mstore
+    pop
+    swap1 pop
+    0x01 add
+    0x00 mload swap1
+    validate_vault_loop jump
+validate_vault_revert:
+    0x6be92da6 0x00 mstore
+    0x04 0x1c revert
+validate_vault_done:
+    pop pop pop
+}
+
 #define macro EXECUTE_CALLS() = takes (1) returns (0) {
     // Packed layout: count, then repeated target/value/dataLen/data.
     dup1 calldataload
@@ -410,7 +434,7 @@ profit_done:
     0x40 0x80
     log4
     pop pop pop pop pop
-    stop
+    0x20 0x80 return
 deadline_expired:
     0x1ab7da6b 0x00 mstore
     0x04 0x1c revert
@@ -431,6 +455,94 @@ balance_failed:
 balancer_call_failed:
     returndatasize 0x00 0x00 returndatacopy
     returndatasize 0x00 revert
+}
+
+#define macro EXECUTE_ARB_DIRECT() = takes (0) returns (0) {
+    ONLY_OWNER()
+    0x01 sload iszero phase_idle_ok jumpi
+    0xadd4adc0 0x00 mstore
+    0x04 0x1c revert
+phase_idle_ok:
+    0x44
+    dup1 0x80 add calldataload timestamp gt deadline_expired jumpi
+    dup1 0xc0 add dup1 calldataload
+    dup1 iszero empty_route jumpi
+    0x0c lt too_many_calls jumpi
+    0x84 calldataload iszero zero_address jumpi
+
+    0xc0 0x24 calldataload sub
+    dup1 0x00 mstore
+    dup1 0x104 0x20 calldatacopy
+    dup1 0x20 sha3
+
+    0xe4 calldataload
+    eq route_hash_ok jumpi
+    0xc858adff 0x00 mstore
+    0x04 0x1c revert
+route_hash_ok:
+    0x84 calldataload
+    0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
+    address 0x04 mstore
+    0x20 0x00 0x24 0x00 dup5 gas staticcall
+    iszero balance_failed jumpi
+    returndatasize 0x20 lt balance_failed jumpi
+    0x00 mload
+    dup1 0x05 sstore
+
+    0x02 0x01 sstore
+    0xe4 calldataload 0x02 sstore
+    0x84 calldataload 0x03 sstore
+    0xa4 calldataload 0x04 sstore
+
+    0xc0 add
+    EXECUTE_CALLS()
+
+    0x00 0x01 sstore
+    ASSERT_PROFIT()
+
+    0x03 sload
+    0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
+    address 0x04 mstore
+    0x20 0x00 0x24 0x00 dup5 gas staticcall
+    iszero balance_failed jumpi
+    returndatasize 0x20 lt balance_failed jumpi
+    0x00 mload
+    0x05 sload
+    dup2 dup2 lt iszero direct_profit_calc jumpi
+    0x00
+    direct_profit_done jump
+direct_profit_calc:
+    dup2 dup2 sub
+direct_profit_done:
+    0x00 0x02 sstore
+    0x00 0x03 sstore
+    0x00 0x04 sstore
+    0x00 0x05 sstore
+
+    dup1 0x80 mstore
+    0x07 sload 0xa0 mstore
+    0xa4 calldataload
+    0x84 calldataload
+    caller
+    0x2790eac69d46d24bb29b55a23b12e2e49076dc2a9fdcb340e641de33fca2c5dd
+    0x40 0x80
+    log4
+    pop
+    0x20 0x80 return
+deadline_expired:
+    0x1ab7da6b 0x00 mstore
+    0x04 0x1c revert
+empty_route:
+    0xea60ab1d 0x00 mstore
+    0x04 0x1c revert
+too_many_calls:
+    0xf5dedbff 0x00 mstore
+    0x04 0x1c revert
+zero_address:
+    0xd92e233d 0x00 mstore
+    0x04 0x1c revert
+balance_failed:
+    0x00 0x00 revert
 }
 
 #define macro EXECUTE_ARB_WITH_AAVE() = takes (0) returns (0) {
@@ -474,26 +586,17 @@ route_hash_ok:
     0x84 calldataload 0x03 sstore                     // profitToken
     0xa4 calldataload 0x04 sstore                     // minProfit
 
-    0xab9c4b5d00000000000000000000000000000000000000000000000000000000 0x80 mstore
+    0x42b0b77c00000000000000000000000000000000000000000000000000000000 0x80 mstore
     address 0x84 mstore
-    0xe0 0xa4 mstore
-    0x120 0xc4 mstore
-    0x160 0xe4 mstore
-    address 0x104 mstore
-    0x1a0 0x124 mstore
-    0x00 0x144 mstore
-
-    0x01 0x164 mstore
-    0x44 calldataload 0x184 mstore
-    0x01 0x1a4 mstore
-    0x64 calldataload 0x1c4 mstore
-    0x01 0x1e4 mstore
-    0x00 0x204 mstore
+    0x44 calldataload 0xa4 mstore
+    0x64 calldataload 0xc4 mstore
+    0xa0 0xe4 mstore
+    0x00 0x104 mstore
 
     0x24 calldataload
-    dup1 0x224 mstore
-    dup1 0x44 0x244 calldatacopy
-    0x1c4 add
+    dup1 0x124 mstore
+    dup1 0x44 0x144 calldatacopy
+    0xc4 add
     0x00 0x00 swap2 0x80 0x00 0x0c sload gas call
     iszero aave_call_failed jumpi
 
@@ -532,7 +635,7 @@ profit_done:
     0x40 0x80
     log4
     pop pop pop pop pop
-    stop
+    0x20 0x80 return
 deadline_expired:
     0x1ab7da6b 0x00 mstore
     0x04 0x1c revert
@@ -583,6 +686,7 @@ min_profit_ok:
 
     0x02 0x01 sstore                               // phase=2
     0xc0 add                                        // [calls_ptr]
+    dup1 VALIDATE_NO_VAULT_CALLS()
     EXECUTE_CALLS()                                 // []
 
     0x04 calldataload 0x04 add                      // [tokens_ptr]
@@ -646,12 +750,14 @@ min_profit_ok:
     0xc0 add
     EXECUTE_CALLS()
 
-    0x04 calldataload 0x24 add calldataload
+    0x04 calldataload
     0x0c sload
-    0x24 calldataload 0x24 add calldataload
-    0x44 calldataload 0x24 add calldataload
+    0x24 calldataload
+    0x44 calldataload
     add
-    SAFE_TRANSFER()
+    dup3 dup3 dup3
+    SAFE_APPROVE_MAX_IF_NEEDED()
+    pop pop pop
 
     0x00 0x01 sstore
     ASSERT_PROFIT()
@@ -813,7 +919,7 @@ send_token1:
     caller dup4 swap2 SAFE_TRANSFER()
 token1_done:
     pop pop pop pop pop
-    stop
+    0x20 0x80 return
 }
 
 #define macro UNLOCK_CALLBACK() = takes (0) returns (0) {
@@ -929,7 +1035,7 @@ v2_send_token1:
     caller dup4 swap2 SAFE_TRANSFER()
 v2_token1_done:
     pop pop pop pop pop
-    stop
+    0x20 0x80 return
 }
 
 #define macro HANDLE_ALGEBRA_CALLBACK() = takes (0) returns (0) {
@@ -973,12 +1079,58 @@ send_token1:
     caller dup4 swap2 SAFE_TRANSFER()
 token1_done:
     pop pop pop pop pop
+    0x20 0x80 return
+}
+
+#define macro INITIALIZE() = takes (0) returns (0) {
+    0x00 sload iszero init_ok jumpi
+    0x82b42900 0x00 mstore
+    0x04 0x1c revert
+init_ok:
+    0x04 calldataload iszero is_zero_revert jumpi
+    0x24 calldataload iszero is_zero_revert jumpi
+    0x44 calldataload iszero is_zero_revert jumpi
+    0x64 calldataload iszero is_zero_revert jumpi
+    0x84 calldataload iszero is_zero_revert jumpi
+    0xa4 calldataload iszero is_zero_revert jumpi
+    0xc4 calldataload iszero is_zero_revert jumpi
+    0xe4 calldataload iszero is_zero_revert jumpi
+    0x104 calldataload iszero is_zero_revert jumpi
+    0x124 calldataload iszero is_zero_revert jumpi
+    0x144 calldataload iszero is_zero_revert jumpi
+    0x164 calldataload iszero is_zero_revert jumpi
+    0x184 calldataload iszero is_zero_revert jumpi
+    0x1a4 calldataload iszero is_zero_revert jumpi
+    0x1c4 calldataload iszero is_zero_revert jumpi
+    0x1e4 calldataload iszero is_zero_revert jumpi
+    0x204 calldataload iszero is_zero_revert jumpi
+
+    0x04 calldataload 0x00 sstore
+    0x24 calldataload 0x07 sstore
+    0x44 calldataload 0x08 sstore
+    0x64 calldataload 0x09 sstore
+    0x84 calldataload 0x0a sstore
+    0xa4 calldataload 0x0b sstore
+    0xc4 calldataload 0x0c sstore
+    0xe4 calldataload 0x0d sstore
+    0x104 calldataload 0x0e sstore
+    0x124 calldataload 0x0f sstore
+    0x144 calldataload 0x10 sstore
+    0x164 calldataload 0x11 sstore
+    0x184 calldataload 0x12 sstore
+    0x1a4 calldataload 0x13 sstore
+    0x1c4 calldataload 0x14 sstore
+    0x1e4 calldataload 0x15 sstore
+    0x204 calldataload 0x16 sstore
+
+    0x01 0x06 sstore
     stop
 }
 
 #define macro CONSTRUCTOR() = takes (0) returns (0) {
+    // Args sit at fixed offset after CONSTRUCTOR header (see deploy init layout).
     0x220
-    0x220 codesize sub
+    0x148
     0x00
     codecopy
 
@@ -1025,6 +1177,18 @@ is_zero_revert:
     0xd92e233d00000000000000000000000000000000000000000000000000000000 0x00 mstore
     0x04 0x00 revert
 constructor_end:
+    // Init layout: [CONSTRUCTOR][args (0x220)][MAIN]. Return runtime for on-chain CREATE.
+    codesize
+    0x368
+    sub
+    0x368
+    0x00
+    codecopy
+    codesize
+    0x368
+    sub
+    0x00
+    return
 }
 
 #define macro APPROVE_ALL() = takes (0) returns (0) {
@@ -1055,6 +1219,7 @@ constructor_end:
     0x00 calldataload 0xe0 shr
 
     dup1 0x8da5cb5b eq owner_dest jumpi
+    dup1 0xa1e20834 eq initialize_dest jumpi
     dup1 0xf2fde38b eq transfer_ownership_dest jumpi
     dup1 0xb4656158 eq pre_approve_dest jumpi
     dup1 0xfad6b994 eq approve_if_needed_dest jumpi
@@ -1065,6 +1230,7 @@ constructor_end:
     dup1 0x89476069 eq withdraw_token_dest jumpi
     dup1 0x0621472c eq approve_all_dest jumpi
     dup1 0x5fa6519d eq execute_arb_dest jumpi
+    dup1 0x368764c8 eq execute_arb_direct_dest jumpi
     dup1 0x540285ec eq execute_arb_with_aave_dest jumpi
     dup1 0xf04f2707 eq receive_flash_loan_dest jumpi
     dup1 0x1b11d0ff eq execute_operation_dest jumpi
@@ -1100,6 +1266,8 @@ is_zero_revert:
 
 owner_dest:
     GET_SLOT(0x00)
+initialize_dest:
+    INITIALIZE()
 transfer_ownership_dest:
     TRANSFER_OWNERSHIP()
 pre_approve_dest:
@@ -1120,6 +1288,8 @@ approve_all_dest:
     APPROVE_ALL()
 execute_arb_dest:
     EXECUTE_ARB()
+execute_arb_direct_dest:
+    EXECUTE_ARB_DIRECT()
 execute_arb_with_aave_dest:
     EXECUTE_ARB_WITH_AAVE()
 receive_flash_loan_dest:
