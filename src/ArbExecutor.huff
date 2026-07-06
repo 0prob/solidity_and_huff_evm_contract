@@ -658,6 +658,108 @@ aave_call_failed:
     returndatasize 0x00 revert
 }
 
+#define macro EXECUTE_ARB_WITH_DODO() = takes (0) returns (0) {
+    ONLY_OWNER()
+    0x01 sload iszero phase_idle_ok jumpi
+    0xadd4adc0 0x00 mstore
+    0x04 0x1c revert
+phase_idle_ok:
+    0x44                                             // [params_ptr]
+    dup1 0x80 add calldataload timestamp gt deadline_expired jumpi
+    dup1 0xc0 add dup1 calldataload                   // [num_calls, calls_ptr, params_ptr]
+    dup1 iszero empty_route jumpi
+    0x0c lt too_many_calls jumpi
+    0x64 calldataload iszero flash_loan_required jumpi
+    0x44 calldataload iszero zero_address jumpi
+    0x84 calldataload iszero zero_address jumpi
+    0xc0 0x24 calldataload sub
+    dup1 0x00 mstore
+    dup1 0x104 0x20 calldatacopy
+    dup1 0x20 sha3
+    0xe4 calldataload
+    eq route_hash_ok jumpi
+    0xc858adff 0x00 mstore
+    0x04 0x1c revert
+route_hash_ok:
+    0x84 calldataload
+    0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
+    address 0x04 mstore
+    0x20 0x00 0x24 0x00 dup5 gas staticcall
+    iszero balance_failed jumpi
+    returndatasize 0x20 lt balance_failed jumpi
+    0x00 mload
+    dup1 0x05 sstore
+    0x01 0x01 sstore
+    0xe4 calldataload 0x02 sstore
+    0x84 calldataload 0x03 sstore
+    0xa4 calldataload 0x04 sstore
+    0x44 calldataload 0x17 sstore                      // DODO pool address for callback verification
+    0x84 calldataload 0x18 sstore                       // profitToken (also the flash token for DODO)
+    0xd0a494e400000000000000000000000000000000000000000000000000000000 0x80 mstore
+    0x64 calldataload 0x84 mstore                      // baseAmount = flashAmount
+    0x00 0xa4 mstore                                   // quoteAmount = 0
+    address 0xc4 mstore                                // assetTo = address(this)
+    0xe0 0xe4 mstore                                   // data offset (points to routeHash at 0x124)
+    0x20 0x104 mstore                                  // data len = 32
+    0x02 sload 0x124 mstore                            // data = routeHash
+    0x44 calldataload dup1 0x144 mstore
+    0x00 0x00 0x00 0x80 0xa4 0x00 0x00 dup2 gas call
+    iszero dodo_call_failed jumpi
+    0x01 sload iszero phase_idle_after_ok jumpi
+    0xadd4adc0 0x00 mstore
+    0x04 0x1c revert
+phase_idle_after_ok:
+    dup2
+    0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
+    address 0x04 mstore
+    0x20 0x00 0x24 0x00 dup5 gas staticcall
+    iszero balance_failed jumpi
+    returndatasize 0x20 lt balance_failed jumpi
+    0x00 mload
+    dup2 dup2 lt iszero profit_calc jumpi
+    0x00
+    profit_done jump
+profit_calc:
+    dup2 dup2 sub
+profit_done:
+    0x00 0x01 sstore
+    0x00 0x02 sstore
+    0x00 0x03 sstore
+    0x00 0x04 sstore
+    0x00 0x05 sstore
+    0x00 0x17 sstore
+    dup1 0x80 mstore
+    0x17 sload 0xa0 mstore
+    dup6 0xa0 add calldataload
+    dup5
+    caller
+    0xc19e0a4f4949ec90b1660f81a45b68e36d403a36b215ee186ee5edf8c73f2ed
+    0x40 0x80
+    log4
+    pop pop pop pop pop
+    0x20 0x80 return
+deadline_expired:
+    0x1ab7da6b 0x00 mstore
+    0x04 0x1c revert
+empty_route:
+    0xea60ab1d 0x00 mstore
+    0x04 0x1c revert
+too_many_calls:
+    0xf5dedbff 0x00 mstore
+    0x04 0x1c revert
+flash_loan_required:
+    0x946302fe 0x00 mstore
+    0x04 0x1c revert
+zero_address:
+    0xd92e233d 0x00 mstore
+    0x04 0x1c revert
+balance_failed:
+    0x00 0x00 revert
+dodo_call_failed:
+    returndatasize 0x00 0x00 returndatacopy
+    returndatasize 0x00 revert
+}
+
 #define macro RECEIVE_FLASH_LOAN() = takes (0) returns (0) {
     // stack in: []  stack out: []
     caller 0x07 sload eq balancer_sender_ok jumpi
@@ -763,6 +865,49 @@ min_profit_ok:
     ASSERT_PROFIT()
     0x01 0x00 mstore
     0x20 0x00 return
+deadline_expired:
+    0x1ab7da6b 0x00 mstore
+    0x04 0x1c revert
+}
+
+#define macro DODO_FLASH_LOAN_CALLBACK() = takes (0) returns (0) {
+    caller 0x17 sload eq dodo_sender_ok jumpi
+    0xc21d53e8 0x00 mstore
+    0x04 0x1c revert
+dodo_sender_ok:
+    0x01 sload 0x01 eq phase_flashloan_ok jumpi
+    0xadd4adc0 0x00 mstore
+    0x04 0x1c revert
+phase_flashloan_ok:
+    0x64 calldataload 0x04 add                      // [data_ptr]
+    dup1 0x20 add calldataload 0x02 sload eq route_hash_ok jumpi
+    0xc858adff 0x00 mstore
+    0x04 0x1c revert
+route_hash_ok:
+    dup1 0x40 add calldataload 0x03 sload eq profit_token_ok jumpi
+    0xadd4adc0 0x00 mstore
+    0x04 0x1c revert
+profit_token_ok:
+    dup1 0x60 add calldataload 0x04 sload eq min_profit_ok jumpi
+    0xadd4adc0 0x00 mstore
+    0x04 0x1c revert
+min_profit_ok:
+    dup1 0x80 add calldataload timestamp gt deadline_expired jumpi
+    0x02 0x01 sstore                                // phase=2
+    0xc0 add                                        // [calls_ptr]
+    EXECUTE_CALLS()                                 // execute swaps
+    0x24 calldataload                                // baseAmount from callback calldata
+    dup1 iszero no_repay jumpi
+    0x18 sload                                      // flash token
+    0x17 sload                                      // DODO pool
+    swap2                                           // [amount, pool, token]
+    SAFE_TRANSFER()                                 // repay DODO
+no_repay:
+    pop
+    0x00 0x01 sstore                                // phase=0
+    0x00 0x17 sstore                                // clear DODO pool
+    ASSERT_PROFIT()
+    stop
 deadline_expired:
     0x1ab7da6b 0x00 mstore
     0x04 0x1c revert
@@ -964,8 +1109,6 @@ delta0_owe:
     swap1 0x04 mstore
     0x00 0x00 0x24 0x00 0x00 0x0d sload gas call pop
     0x0d sload swap2 SAFE_TRANSFER()
-    0x11da60b400000000000000000000000000000000000000000000000000000000 0x00 mstore
-    0x00 0x00 0x04 0x00 0x00 0x0d sload gas call pop
     pop
 delta0_done:
 
@@ -989,8 +1132,6 @@ delta1_owe:
     swap1 0x04 mstore
     0x00 0x00 0x24 0x00 0x00 0x0d sload gas call pop
     0x0d sload swap2 SAFE_TRANSFER()
-    0x11da60b400000000000000000000000000000000000000000000000000000000 0x00 mstore
-    0x00 0x00 0x04 0x00 0x00 0x0d sload gas call pop
     pop
 delta1_done:
 unlock_return:
@@ -1232,8 +1373,12 @@ constructor_end:
     dup1 0x5fa6519d eq execute_arb_dest jumpi
     dup1 0x368764c8 eq execute_arb_direct_dest jumpi
     dup1 0x540285ec eq execute_arb_with_aave_dest jumpi
+    dup1 0x735ec4d7 eq execute_arb_with_dodo_dest jumpi
     dup1 0xf04f2707 eq receive_flash_loan_dest jumpi
     dup1 0x1b11d0ff eq execute_operation_dest jumpi
+    dup1 0xeb2021c3 eq dvm_flash_loan_callback_dest jumpi
+    dup1 0x7ed1f1dd eq dpp_flash_loan_callback_dest jumpi
+    dup1 0xd5b99797 eq dsp_flash_loan_callback_dest jumpi
     dup1 0xfa461e33 eq uniswap_v3_callback_dest jumpi
     dup1 0x2c8958f6 eq algebra_callback_dest jumpi
     dup1 0x91dd7346 eq unlock_callback_dest jumpi
@@ -1292,10 +1437,18 @@ execute_arb_direct_dest:
     EXECUTE_ARB_DIRECT()
 execute_arb_with_aave_dest:
     EXECUTE_ARB_WITH_AAVE()
+execute_arb_with_dodo_dest:
+    EXECUTE_ARB_WITH_DODO()
 receive_flash_loan_dest:
     RECEIVE_FLASH_LOAN()
 execute_operation_dest:
     EXECUTE_OPERATION()
+dvm_flash_loan_callback_dest:
+    DODO_FLASH_LOAN_CALLBACK()
+dpp_flash_loan_callback_dest:
+    DODO_FLASH_LOAN_CALLBACK()
+dsp_flash_loan_callback_dest:
+    DODO_FLASH_LOAN_CALLBACK()
 uniswap_v3_callback_dest:
     HANDLE_POOL_SWAP_CALLBACK(0x01)
 algebra_callback_dest:

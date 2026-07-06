@@ -4,18 +4,20 @@ Flash-loan-powered arbitrage executor for Polygon. Written in Huff (hand-optimiz
 
 ## Execution Modes
 
-The contract exposes three owner-only entry points. All take the same `packedRoute` blob and return realized profit in the profit token.
+The contract exposes four owner-only entry points. All return `uint256 realizedProfit` denominated in the profit token.
 
 | Function | Flash loan | Use when |
 |----------|------------|----------|
 | `executeArb` | Balancer V2 Vault | Default path; borrows via `flashLoan` → `receiveFlashLoan` |
-| `executeArbWithAave` | Aave V3 Pool | When Balancer liquidity or fees are unfavorable |
+| `executeArbWithAave` | Aave V3 Pool (`flashLoanSimple`) | Single-asset flash loan with premium-based repayment |
+| `executeArbWithDodo` | DODO V2 Pool (`dvmFlashLoan` / `dppFlashLoan` / `dspFlashLoan`) | Alternative flash loan source — repaid via `transfer` in callback |
 | `executeArbDirect` | None | Balancer `batchSwap` / Vault flash-swap routes — the Vault is non-reentrant and cannot be called from inside `receiveFlashLoan` |
 
 ```
-executeArb:          owner → flashLoan → receiveFlashLoan → [calls] → repay → profit check
-executeArbWithAave:  owner → flashLoanSimple → executeOperation → [calls] → approve+repay → profit check
-executeArbDirect:    owner → [calls] → profit check
+executeArb:           owner → flashLoan → receiveFlashLoan → [calls] → repay(transfer) → profit check
+executeArbWithAave:   owner → flashLoanSimple → executeOperation → [calls] → repay(approve+transferFrom) → profit check
+executeArbWithDodo:   owner → dvmFlashLoan → DODO_FLASH_LOAN_CALLBACK → [calls] → repay(transfer) → profit check
+executeArbDirect:     owner → [calls] → profit check
 ```
 
 The contract holds no working capital. Failed executions revert atomically (`InsufficientProfit`, `ExternalCallFailed`, etc.) — the owner only pays gas.
@@ -24,7 +26,7 @@ The contract holds no working capital. Failed executions revert atomically (`Ins
 
 `IDLE (0) → FLASHLOAN (1) → CALLBACK (2) → IDLE (0)`
 
-Reentrancy is blocked outside callback phases. Balancer Vault calls inside a Vault flash-loan callback are rejected (`BalancerVaultReentrancy`).
+Reentrancy is blocked outside callback phases. Balancer Vault calls inside a Vault flash-loan callback are rejected (`BalancerVaultReentrancy`) — the `VALIDATE_NO_VAULT_CALLS` macro iterates the route's call targets and reverts if any matches the Vault address.
 
 ## Route Format
 
@@ -53,31 +55,35 @@ Pool-based DEX callbacks verify the caller against an on-chain factory lookup be
 | 4 | Algebra | QuickSwap V4 | `algebraSwapCallback` |
 | — | V4 | Uniswap V4 | `unlockCallback` (via PoolManager) |
 | 7–14 | V2 | Uniswap V2, SushiSwap V2, QuickSwap V2, DFYN, ApeSwap, MeshSwap, JetSwap, ComethSwap | `uniswapV2Call` |
+| — | DODO | DODO V2 (DVM/DPP/DSP) | `dvmFlashLoanCall` / `dppFlashLoanCall` / `dspFlashLoanCall` |
 
 **Arbitrary calls** — Curve, DODO V2, WooFi, Balancer `batchSwap`, and any other protocol are encoded as plain `target/value/data` steps in the route. The bot supplies full calldata (typically `approve` + `swap`). These have no dedicated callback handler.
 
-V2/V3/Algebra callbacks pay via `transfer` (no standing approvals). Aave repayment auto-approves the pool inside `executeOperation`.
+V2/V3/Algebra callbacks pay via `transfer` (no standing approvals). Aave repayment auto-approves the pool inside `executeOperation`. DODO repayment transfers the flash-loan amount back to the pool inside the callback.
 
 ## Access Control
 
-- `executeArb`, `executeArbDirect`, `executeArbWithAave` — owner only
+- `executeArb`, `executeArbDirect`, `executeArbWithAave`, `executeArbWithDodo` — owner only
 - `approveIfNeeded`, `transferAll` — owner or contract itself (for in-route approvals)
 - `preApprove`, `approveAll`, `rescueToken`, `rescueNative`, `withdraw`, `transferOwnership` — owner only
+- `initialize` — callable once (guarded by slot 0 check); sets all storage slots
 
-Set `OWNER` to the bot wallet at deploy time.
+Set `OWNER` to the bot wallet at deploy time. `initialize()` must be called post-deploy for mainnet deployments that use the cast-based script (the Foundry script embeds args at deploy time).
 
 ## Contracts
 
 | File | Description |
 |------|-------------|
-| `src/ArbExecutor.huff` | Canonical implementation — swap logic, callbacks, flash-loan handlers, auth |
-| `src/ArbExecutor.sol` | Abstract interface, errors, and `ArbExecutorCodec` helpers for route packing |
+| `src/ArbExecutor.huff` | Canonical implementation — swap logic, callbacks, flash-loan handlers, auth, dispatch |
+| `src/ArbExecutor.sol` | Abstract interface, errors, `ArbExecutorCodec` helpers, and external interface types (Balancer Vault, Aave V3) |
 | `test/HuffDeployer.sol` | Compiles Huff via `ffi` + `huffc`; deploys constructor bytecode and `vm.etch`es runtime |
+| `test/ArbExecutorAtomic.t.sol` | Local tests with mock tokens, mock vaults, and route execution scenarios |
+| `test/ArbExecutorAaveFork.t.sol` | Fork tests against live Polygon Aave V3 Pool |
 | `script/Deploy.s.sol` | Foundry broadcast deploy (constructor args embedded at deploy) |
-| `script/deploy_mainnet.sh` | Alternative mainnet deploy via `cast` (runtime bytecode + post-deploy `initialize`) |
+| `script/deploy_mainnet.sh` | Mainnet deploy via `cast` (runtime CREATE + post-deploy `initialize`) |
 | `deploy` | Shell wrapper around `forge script script/Deploy.s.sol --broadcast` |
 
-Deploy-time storage (slots 0–22): owner, Balancer Vault, V3/V2 factory addresses, Aave Pool, Uniswap V4 PoolManager, QuickSwap V4 factory placeholder.
+Deploy-time storage (slots 0–22): owner, Balancer Vault, V3/V2 factory addresses, Aave Pool, Uniswap V4 PoolManager, QuickSwap V4 factory placeholder, DODO pools.
 
 ## Setup
 
