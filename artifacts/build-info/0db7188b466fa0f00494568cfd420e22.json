@@ -1,0 +1,2599 @@
+{
+	"id": "0db7188b466fa0f00494568cfd420e22",
+	"_format": "hh-sol-build-info-1",
+	"solcVersion": "0.8.34",
+	"solcLongVersion": "0.8.34+commit.80d5c536",
+	"input": {
+		"compiler": {
+			"version": "0.8.34+commit.80d5c536"
+		},
+		"language": "Solidity",
+		"output": {
+			"abi": [
+				{
+					"inputs": [
+						{
+							"internalType": "address",
+							"name": "token",
+							"type": "address"
+						},
+						{
+							"internalType": "address",
+							"name": "spender",
+							"type": "address"
+						}
+					],
+					"type": "error",
+					"name": "ApproveFailed"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "BalancerVaultReentrancy"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "CallbackOnly"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "DeadlineExpired"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "EmptyRoute"
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "uint256",
+							"name": "index",
+							"type": "uint256"
+						},
+						{
+							"internalType": "address",
+							"name": "target",
+							"type": "address"
+						},
+						{
+							"internalType": "bytes",
+							"name": "reason",
+							"type": "bytes"
+						}
+					],
+					"type": "error",
+					"name": "ExternalCallFailed"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "FlashLoanOnly"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "FlashLoanRequired"
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "uint256",
+							"name": "finalBalance",
+							"type": "uint256"
+						},
+						{
+							"internalType": "uint256",
+							"name": "requiredBalance",
+							"type": "uint256"
+						}
+					],
+					"type": "error",
+					"name": "InsufficientProfit"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "InvalidCallbackSource"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "InvalidFlashLoanContext"
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "address",
+							"name": "expected",
+							"type": "address"
+						},
+						{
+							"internalType": "address",
+							"name": "actual",
+							"type": "address"
+						}
+					],
+					"type": "error",
+					"name": "InvalidPoolCaller"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "InvalidRouteHash"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "TooManyCalls"
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "address",
+							"name": "token",
+							"type": "address"
+						},
+						{
+							"internalType": "address",
+							"name": "to",
+							"type": "address"
+						},
+						{
+							"internalType": "uint256",
+							"name": "amount",
+							"type": "uint256"
+						}
+					],
+					"type": "error",
+					"name": "TransferFailed"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "Unauthorized"
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "uint8",
+							"name": "protocolId",
+							"type": "uint8"
+						}
+					],
+					"type": "error",
+					"name": "UnsupportedProtocol"
+				},
+				{
+					"inputs": [],
+					"type": "error",
+					"name": "ZeroAddress"
+				},
+				{
+					"inputs": [],
+					"stateMutability": "view",
+					"type": "function",
+					"name": "aavePool",
+					"outputs": [
+						{
+							"internalType": "address",
+							"name": "",
+							"type": "address"
+						}
+					]
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "address",
+							"name": "token",
+							"type": "address"
+						},
+						{
+							"internalType": "address",
+							"name": "spender",
+							"type": "address"
+						},
+						{
+							"internalType": "uint256",
+							"name": "amount",
+							"type": "uint256"
+						}
+					],
+					"stateMutability": "nonpayable",
+					"type": "function",
+					"name": "approveIfNeeded"
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "address",
+							"name": "flashToken",
+							"type": "address"
+						},
+						{
+							"internalType": "uint256",
+							"name": "flashAmount",
+							"type": "uint256"
+						},
+						{
+							"internalType": "address",
+							"name": "profitToken",
+							"type": "address"
+						},
+						{
+							"internalType": "uint256",
+							"name": "minProfit",
+							"type": "uint256"
+						},
+						{
+							"internalType": "uint256",
+							"name": "deadline",
+							"type": "uint256"
+						},
+						{
+							"internalType": "struct ArbExecutor.Call[]",
+							"name": "calls",
+							"type": "tuple[]",
+							"components": [
+								{
+									"internalType": "address",
+									"name": "target",
+									"type": "address"
+								},
+								{
+									"internalType": "uint256",
+									"name": "value",
+									"type": "uint256"
+								},
+								{
+									"internalType": "bytes",
+									"name": "data",
+									"type": "bytes"
+								}
+							]
+						}
+					],
+					"stateMutability": "pure",
+					"type": "function",
+					"name": "buildPackedRoute",
+					"outputs": [
+						{
+							"internalType": "bytes",
+							"name": "payload",
+							"type": "bytes"
+						},
+						{
+							"internalType": "bytes32",
+							"name": "routeHash",
+							"type": "bytes32"
+						}
+					]
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "bytes",
+							"name": "packedCalls",
+							"type": "bytes"
+						}
+					],
+					"stateMutability": "pure",
+					"type": "function",
+					"name": "computeRouteHash",
+					"outputs": [
+						{
+							"internalType": "bytes32",
+							"name": "",
+							"type": "bytes32"
+						}
+					]
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "bytes",
+							"name": "packedRoute",
+							"type": "bytes"
+						}
+					],
+					"stateMutability": "nonpayable",
+					"type": "function",
+					"name": "executeArb",
+					"outputs": [
+						{
+							"internalType": "uint256",
+							"name": "realizedProfit",
+							"type": "uint256"
+						}
+					]
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "bytes",
+							"name": "packedRoute",
+							"type": "bytes"
+						}
+					],
+					"stateMutability": "nonpayable",
+					"type": "function",
+					"name": "executeArbDirect",
+					"outputs": [
+						{
+							"internalType": "uint256",
+							"name": "realizedProfit",
+							"type": "uint256"
+						}
+					]
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "bytes",
+							"name": "packedRoute",
+							"type": "bytes"
+						}
+					],
+					"stateMutability": "nonpayable",
+					"type": "function",
+					"name": "executeArbWithAave",
+					"outputs": [
+						{
+							"internalType": "uint256",
+							"name": "realizedProfit",
+							"type": "uint256"
+						}
+					]
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "address",
+							"name": "asset",
+							"type": "address"
+						},
+						{
+							"internalType": "uint256",
+							"name": "amount",
+							"type": "uint256"
+						},
+						{
+							"internalType": "uint256",
+							"name": "premium",
+							"type": "uint256"
+						},
+						{
+							"internalType": "address",
+							"name": "initiator",
+							"type": "address"
+						},
+						{
+							"internalType": "bytes",
+							"name": "params",
+							"type": "bytes"
+						}
+					],
+					"stateMutability": "nonpayable",
+					"type": "function",
+					"name": "executeOperation",
+					"outputs": [
+						{
+							"internalType": "bool",
+							"name": "",
+							"type": "bool"
+						}
+					]
+				},
+				{
+					"inputs": [],
+					"stateMutability": "view",
+					"type": "function",
+					"name": "owner",
+					"outputs": [
+						{
+							"internalType": "address",
+							"name": "",
+							"type": "address"
+						}
+					]
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "struct ArbExecutor.Call[]",
+							"name": "calls",
+							"type": "tuple[]",
+							"components": [
+								{
+									"internalType": "address",
+									"name": "target",
+									"type": "address"
+								},
+								{
+									"internalType": "uint256",
+									"name": "value",
+									"type": "uint256"
+								},
+								{
+									"internalType": "bytes",
+									"name": "data",
+									"type": "bytes"
+								}
+							]
+						}
+					],
+					"stateMutability": "pure",
+					"type": "function",
+					"name": "packExecutorCalls",
+					"outputs": [
+						{
+							"internalType": "bytes",
+							"name": "out",
+							"type": "bytes"
+						}
+					]
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "address",
+							"name": "token",
+							"type": "address"
+						},
+						{
+							"internalType": "address",
+							"name": "spender",
+							"type": "address"
+						}
+					],
+					"stateMutability": "nonpayable",
+					"type": "function",
+					"name": "preApprove"
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "contract IERC20Minimal[]",
+							"name": "tokens",
+							"type": "address[]"
+						},
+						{
+							"internalType": "uint256[]",
+							"name": "amounts",
+							"type": "uint256[]"
+						},
+						{
+							"internalType": "uint256[]",
+							"name": "feeAmounts",
+							"type": "uint256[]"
+						},
+						{
+							"internalType": "bytes",
+							"name": "userData",
+							"type": "bytes"
+						}
+					],
+					"stateMutability": "nonpayable",
+					"type": "function",
+					"name": "receiveFlashLoan"
+				},
+				{
+					"inputs": [
+						{
+							"internalType": "address",
+							"name": "token",
+							"type": "address"
+						},
+						{
+							"internalType": "address",
+							"name": "to",
+							"type": "address"
+						}
+					],
+					"stateMutability": "nonpayable",
+					"type": "function",
+					"name": "transferAll"
+				}
+			],
+			"devdoc": {
+				"kind": "dev",
+				"methods": {},
+				"version": 1
+			},
+			"userdoc": {
+				"kind": "user",
+				"methods": {
+					"executeArbDirect(bytes)": {
+						"notice": "Run a route without a flash loan. Use for Balancer `batchSwap` / flash-swap routes         (the Vault is non-reentrant and cannot be called from `receiveFlashLoan`)."
+					}
+				},
+				"version": 1
+			}
+		},
+		"settings": {
+			"remappings": [
+				"forge-std/=lib/forge-std/src/"
+			],
+			"optimizer": {
+				"enabled": true,
+				"runs": 20000
+			},
+			"metadata": {
+				"bytecodeHash": "none",
+				"appendCBOR": false
+			},
+			"compilationTarget": {
+				"src/ArbExecutor.sol": "ArbExecutor"
+			},
+			"evmVersion": "shanghai",
+			"libraries": {}
+		},
+		"sources": {
+			"src/ArbExecutor.sol": {
+				"keccak256": "0x73245ef2202943c124e59c3fb0e030c28f1106517b45e358e42f373b2bf56341",
+				"urls": [
+					"bzz-raw://444956bc5e464bdd5cdfc41b1253dd18439f02812769bed5be15addb472d1ad9",
+					"dweb:/ipfs/QmXkEKW85qwZTaFBkrw5QdnncnqZHA8SmGo4haHUpudMhe"
+				],
+				"license": "MIT"
+			}
+		},
+		"version": 1
+	},
+	"output": {
+		"contracts": {
+			"src/ArbExecutor.sol": {
+				"ArbExecutor": {
+					"abi": [
+						{
+							"type": "function",
+							"name": "aavePool",
+							"inputs": [],
+							"outputs": [
+								{
+									"name": "",
+									"type": "address",
+									"internalType": "address"
+								}
+							],
+							"stateMutability": "view"
+						},
+						{
+							"type": "function",
+							"name": "approveIfNeeded",
+							"inputs": [
+								{
+									"name": "token",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "spender",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "amount",
+									"type": "uint256",
+									"internalType": "uint256"
+								}
+							],
+							"outputs": [],
+							"stateMutability": "nonpayable"
+						},
+						{
+							"type": "function",
+							"name": "buildPackedRoute",
+							"inputs": [
+								{
+									"name": "flashToken",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "flashAmount",
+									"type": "uint256",
+									"internalType": "uint256"
+								},
+								{
+									"name": "profitToken",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "minProfit",
+									"type": "uint256",
+									"internalType": "uint256"
+								},
+								{
+									"name": "deadline",
+									"type": "uint256",
+									"internalType": "uint256"
+								},
+								{
+									"name": "calls",
+									"type": "tuple[]",
+									"internalType": "struct ArbExecutor.Call[]",
+									"components": [
+										{
+											"name": "target",
+											"type": "address",
+											"internalType": "address"
+										},
+										{
+											"name": "value",
+											"type": "uint256",
+											"internalType": "uint256"
+										},
+										{
+											"name": "data",
+											"type": "bytes",
+											"internalType": "bytes"
+										}
+									]
+								}
+							],
+							"outputs": [
+								{
+									"name": "payload",
+									"type": "bytes",
+									"internalType": "bytes"
+								},
+								{
+									"name": "routeHash",
+									"type": "bytes32",
+									"internalType": "bytes32"
+								}
+							],
+							"stateMutability": "pure"
+						},
+						{
+							"type": "function",
+							"name": "computeRouteHash",
+							"inputs": [
+								{
+									"name": "packedCalls",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							],
+							"outputs": [
+								{
+									"name": "",
+									"type": "bytes32",
+									"internalType": "bytes32"
+								}
+							],
+							"stateMutability": "pure"
+						},
+						{
+							"type": "function",
+							"name": "executeArb",
+							"inputs": [
+								{
+									"name": "packedRoute",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							],
+							"outputs": [
+								{
+									"name": "realizedProfit",
+									"type": "uint256",
+									"internalType": "uint256"
+								}
+							],
+							"stateMutability": "nonpayable"
+						},
+						{
+							"type": "function",
+							"name": "executeArbDirect",
+							"inputs": [
+								{
+									"name": "packedRoute",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							],
+							"outputs": [
+								{
+									"name": "realizedProfit",
+									"type": "uint256",
+									"internalType": "uint256"
+								}
+							],
+							"stateMutability": "nonpayable"
+						},
+						{
+							"type": "function",
+							"name": "executeArbWithAave",
+							"inputs": [
+								{
+									"name": "packedRoute",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							],
+							"outputs": [
+								{
+									"name": "realizedProfit",
+									"type": "uint256",
+									"internalType": "uint256"
+								}
+							],
+							"stateMutability": "nonpayable"
+						},
+						{
+							"type": "function",
+							"name": "executeOperation",
+							"inputs": [
+								{
+									"name": "asset",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "amount",
+									"type": "uint256",
+									"internalType": "uint256"
+								},
+								{
+									"name": "premium",
+									"type": "uint256",
+									"internalType": "uint256"
+								},
+								{
+									"name": "initiator",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "params",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							],
+							"outputs": [
+								{
+									"name": "",
+									"type": "bool",
+									"internalType": "bool"
+								}
+							],
+							"stateMutability": "nonpayable"
+						},
+						{
+							"type": "function",
+							"name": "owner",
+							"inputs": [],
+							"outputs": [
+								{
+									"name": "",
+									"type": "address",
+									"internalType": "address"
+								}
+							],
+							"stateMutability": "view"
+						},
+						{
+							"type": "function",
+							"name": "packExecutorCalls",
+							"inputs": [
+								{
+									"name": "calls",
+									"type": "tuple[]",
+									"internalType": "struct ArbExecutor.Call[]",
+									"components": [
+										{
+											"name": "target",
+											"type": "address",
+											"internalType": "address"
+										},
+										{
+											"name": "value",
+											"type": "uint256",
+											"internalType": "uint256"
+										},
+										{
+											"name": "data",
+											"type": "bytes",
+											"internalType": "bytes"
+										}
+									]
+								}
+							],
+							"outputs": [
+								{
+									"name": "out",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							],
+							"stateMutability": "pure"
+						},
+						{
+							"type": "function",
+							"name": "preApprove",
+							"inputs": [
+								{
+									"name": "token",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "spender",
+									"type": "address",
+									"internalType": "address"
+								}
+							],
+							"outputs": [],
+							"stateMutability": "nonpayable"
+						},
+						{
+							"type": "function",
+							"name": "receiveFlashLoan",
+							"inputs": [
+								{
+									"name": "tokens",
+									"type": "address[]",
+									"internalType": "contract IERC20Minimal[]"
+								},
+								{
+									"name": "amounts",
+									"type": "uint256[]",
+									"internalType": "uint256[]"
+								},
+								{
+									"name": "feeAmounts",
+									"type": "uint256[]",
+									"internalType": "uint256[]"
+								},
+								{
+									"name": "userData",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							],
+							"outputs": [],
+							"stateMutability": "nonpayable"
+						},
+						{
+							"type": "function",
+							"name": "transferAll",
+							"inputs": [
+								{
+									"name": "token",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "to",
+									"type": "address",
+									"internalType": "address"
+								}
+							],
+							"outputs": [],
+							"stateMutability": "nonpayable"
+						},
+						{
+							"type": "error",
+							"name": "ApproveFailed",
+							"inputs": [
+								{
+									"name": "token",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "spender",
+									"type": "address",
+									"internalType": "address"
+								}
+							]
+						},
+						{
+							"type": "error",
+							"name": "BalancerVaultReentrancy",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "CallbackOnly",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "DeadlineExpired",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "EmptyRoute",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "ExternalCallFailed",
+							"inputs": [
+								{
+									"name": "index",
+									"type": "uint256",
+									"internalType": "uint256"
+								},
+								{
+									"name": "target",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "reason",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							]
+						},
+						{
+							"type": "error",
+							"name": "FlashLoanOnly",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "FlashLoanRequired",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "InsufficientProfit",
+							"inputs": [
+								{
+									"name": "finalBalance",
+									"type": "uint256",
+									"internalType": "uint256"
+								},
+								{
+									"name": "requiredBalance",
+									"type": "uint256",
+									"internalType": "uint256"
+								}
+							]
+						},
+						{
+							"type": "error",
+							"name": "InvalidCallbackSource",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "InvalidFlashLoanContext",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "InvalidPoolCaller",
+							"inputs": [
+								{
+									"name": "expected",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "actual",
+									"type": "address",
+									"internalType": "address"
+								}
+							]
+						},
+						{
+							"type": "error",
+							"name": "InvalidRouteHash",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "TooManyCalls",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "TransferFailed",
+							"inputs": [
+								{
+									"name": "token",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "to",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "amount",
+									"type": "uint256",
+									"internalType": "uint256"
+								}
+							]
+						},
+						{
+							"type": "error",
+							"name": "Unauthorized",
+							"inputs": []
+						},
+						{
+							"type": "error",
+							"name": "UnsupportedProtocol",
+							"inputs": [
+								{
+									"name": "protocolId",
+									"type": "uint8",
+									"internalType": "uint8"
+								}
+							]
+						},
+						{
+							"type": "error",
+							"name": "ZeroAddress",
+							"inputs": []
+						}
+					],
+					"evm": {
+						"bytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"deployedBytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"methodIdentifiers": {
+							"aavePool()": "a03e4bc3",
+							"approveIfNeeded(address,address,uint256)": "fad6b994",
+							"buildPackedRoute(address,uint256,address,uint256,uint256,(address,uint256,bytes)[])": "b9645fe1",
+							"computeRouteHash(bytes)": "9a831dfb",
+							"executeArb(bytes)": "5fa6519d",
+							"executeArbDirect(bytes)": "368764c8",
+							"executeArbWithAave(bytes)": "540285ec",
+							"executeOperation(address,uint256,uint256,address,bytes)": "1b11d0ff",
+							"owner()": "8da5cb5b",
+							"packExecutorCalls((address,uint256,bytes)[])": "923fd890",
+							"preApprove(address,address)": "b4656158",
+							"receiveFlashLoan(address[],uint256[],uint256[],bytes)": "f04f2707",
+							"transferAll(address,address)": "4b14e003"
+						}
+					},
+					"metadata": {
+						"compiler": {
+							"version": "0.8.34+commit.80d5c536"
+						},
+						"language": "Solidity",
+						"output": {
+							"abi": [
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "token",
+											"type": "address"
+										},
+										{
+											"internalType": "address",
+											"name": "spender",
+											"type": "address"
+										}
+									],
+									"type": "error",
+									"name": "ApproveFailed"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "BalancerVaultReentrancy"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "CallbackOnly"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "DeadlineExpired"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "EmptyRoute"
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "uint256",
+											"name": "index",
+											"type": "uint256"
+										},
+										{
+											"internalType": "address",
+											"name": "target",
+											"type": "address"
+										},
+										{
+											"internalType": "bytes",
+											"name": "reason",
+											"type": "bytes"
+										}
+									],
+									"type": "error",
+									"name": "ExternalCallFailed"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "FlashLoanOnly"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "FlashLoanRequired"
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "uint256",
+											"name": "finalBalance",
+											"type": "uint256"
+										},
+										{
+											"internalType": "uint256",
+											"name": "requiredBalance",
+											"type": "uint256"
+										}
+									],
+									"type": "error",
+									"name": "InsufficientProfit"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "InvalidCallbackSource"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "InvalidFlashLoanContext"
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "expected",
+											"type": "address"
+										},
+										{
+											"internalType": "address",
+											"name": "actual",
+											"type": "address"
+										}
+									],
+									"type": "error",
+									"name": "InvalidPoolCaller"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "InvalidRouteHash"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "TooManyCalls"
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "token",
+											"type": "address"
+										},
+										{
+											"internalType": "address",
+											"name": "to",
+											"type": "address"
+										},
+										{
+											"internalType": "uint256",
+											"name": "amount",
+											"type": "uint256"
+										}
+									],
+									"type": "error",
+									"name": "TransferFailed"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "Unauthorized"
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "uint8",
+											"name": "protocolId",
+											"type": "uint8"
+										}
+									],
+									"type": "error",
+									"name": "UnsupportedProtocol"
+								},
+								{
+									"inputs": [],
+									"type": "error",
+									"name": "ZeroAddress"
+								},
+								{
+									"inputs": [],
+									"stateMutability": "view",
+									"type": "function",
+									"name": "aavePool",
+									"outputs": [
+										{
+											"internalType": "address",
+											"name": "",
+											"type": "address"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "token",
+											"type": "address"
+										},
+										{
+											"internalType": "address",
+											"name": "spender",
+											"type": "address"
+										},
+										{
+											"internalType": "uint256",
+											"name": "amount",
+											"type": "uint256"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "approveIfNeeded"
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "flashToken",
+											"type": "address"
+										},
+										{
+											"internalType": "uint256",
+											"name": "flashAmount",
+											"type": "uint256"
+										},
+										{
+											"internalType": "address",
+											"name": "profitToken",
+											"type": "address"
+										},
+										{
+											"internalType": "uint256",
+											"name": "minProfit",
+											"type": "uint256"
+										},
+										{
+											"internalType": "uint256",
+											"name": "deadline",
+											"type": "uint256"
+										},
+										{
+											"internalType": "struct ArbExecutor.Call[]",
+											"name": "calls",
+											"type": "tuple[]",
+											"components": [
+												{
+													"internalType": "address",
+													"name": "target",
+													"type": "address"
+												},
+												{
+													"internalType": "uint256",
+													"name": "value",
+													"type": "uint256"
+												},
+												{
+													"internalType": "bytes",
+													"name": "data",
+													"type": "bytes"
+												}
+											]
+										}
+									],
+									"stateMutability": "pure",
+									"type": "function",
+									"name": "buildPackedRoute",
+									"outputs": [
+										{
+											"internalType": "bytes",
+											"name": "payload",
+											"type": "bytes"
+										},
+										{
+											"internalType": "bytes32",
+											"name": "routeHash",
+											"type": "bytes32"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "bytes",
+											"name": "packedCalls",
+											"type": "bytes"
+										}
+									],
+									"stateMutability": "pure",
+									"type": "function",
+									"name": "computeRouteHash",
+									"outputs": [
+										{
+											"internalType": "bytes32",
+											"name": "",
+											"type": "bytes32"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "bytes",
+											"name": "packedRoute",
+											"type": "bytes"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "executeArb",
+									"outputs": [
+										{
+											"internalType": "uint256",
+											"name": "realizedProfit",
+											"type": "uint256"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "bytes",
+											"name": "packedRoute",
+											"type": "bytes"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "executeArbDirect",
+									"outputs": [
+										{
+											"internalType": "uint256",
+											"name": "realizedProfit",
+											"type": "uint256"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "bytes",
+											"name": "packedRoute",
+											"type": "bytes"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "executeArbWithAave",
+									"outputs": [
+										{
+											"internalType": "uint256",
+											"name": "realizedProfit",
+											"type": "uint256"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "asset",
+											"type": "address"
+										},
+										{
+											"internalType": "uint256",
+											"name": "amount",
+											"type": "uint256"
+										},
+										{
+											"internalType": "uint256",
+											"name": "premium",
+											"type": "uint256"
+										},
+										{
+											"internalType": "address",
+											"name": "initiator",
+											"type": "address"
+										},
+										{
+											"internalType": "bytes",
+											"name": "params",
+											"type": "bytes"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "executeOperation",
+									"outputs": [
+										{
+											"internalType": "bool",
+											"name": "",
+											"type": "bool"
+										}
+									]
+								},
+								{
+									"inputs": [],
+									"stateMutability": "view",
+									"type": "function",
+									"name": "owner",
+									"outputs": [
+										{
+											"internalType": "address",
+											"name": "",
+											"type": "address"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "struct ArbExecutor.Call[]",
+											"name": "calls",
+											"type": "tuple[]",
+											"components": [
+												{
+													"internalType": "address",
+													"name": "target",
+													"type": "address"
+												},
+												{
+													"internalType": "uint256",
+													"name": "value",
+													"type": "uint256"
+												},
+												{
+													"internalType": "bytes",
+													"name": "data",
+													"type": "bytes"
+												}
+											]
+										}
+									],
+									"stateMutability": "pure",
+									"type": "function",
+									"name": "packExecutorCalls",
+									"outputs": [
+										{
+											"internalType": "bytes",
+											"name": "out",
+											"type": "bytes"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "token",
+											"type": "address"
+										},
+										{
+											"internalType": "address",
+											"name": "spender",
+											"type": "address"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "preApprove"
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "contract IERC20Minimal[]",
+											"name": "tokens",
+											"type": "address[]"
+										},
+										{
+											"internalType": "uint256[]",
+											"name": "amounts",
+											"type": "uint256[]"
+										},
+										{
+											"internalType": "uint256[]",
+											"name": "feeAmounts",
+											"type": "uint256[]"
+										},
+										{
+											"internalType": "bytes",
+											"name": "userData",
+											"type": "bytes"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "receiveFlashLoan"
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "token",
+											"type": "address"
+										},
+										{
+											"internalType": "address",
+											"name": "to",
+											"type": "address"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "transferAll"
+								}
+							],
+							"devdoc": {
+								"kind": "dev",
+								"methods": {},
+								"version": 1
+							},
+							"userdoc": {
+								"kind": "user",
+								"methods": {
+									"executeArbDirect(bytes)": {
+										"notice": "Run a route without a flash loan. Use for Balancer `batchSwap` / flash-swap routes         (the Vault is non-reentrant and cannot be called from `receiveFlashLoan`)."
+									}
+								},
+								"version": 1
+							}
+						},
+						"settings": {
+							"remappings": [
+								"forge-std/=lib/forge-std/src/"
+							],
+							"optimizer": {
+								"enabled": true,
+								"runs": 20000
+							},
+							"metadata": {
+								"bytecodeHash": "none",
+								"appendCBOR": false
+							},
+							"compilationTarget": {
+								"src/ArbExecutor.sol": "ArbExecutor"
+							},
+							"evmVersion": "shanghai",
+							"libraries": {}
+						},
+						"sources": {
+							"src/ArbExecutor.sol": {
+								"keccak256": "0x73245ef2202943c124e59c3fb0e030c28f1106517b45e358e42f373b2bf56341",
+								"urls": [
+									"bzz-raw://444956bc5e464bdd5cdfc41b1253dd18439f02812769bed5be15addb472d1ad9",
+									"dweb:/ipfs/QmXkEKW85qwZTaFBkrw5QdnncnqZHA8SmGo4haHUpudMhe"
+								],
+								"license": "MIT"
+							}
+						},
+						"version": 1
+					}
+				},
+				"ArbExecutorCodec": {
+					"abi": [],
+					"evm": {
+						"bytecode": {
+							"object": "601f6032600b8282823980515f1a607314602657634e487b7160e01b5f525f60045260245ffd5b305f52607381538281f3fe730000000000000000000000000000000000000000301460806040525f5ffd",
+							"sourceMap": "2222:1419:0:-:0;;;;;;;;;;;;;;;-1:-1:-1;;;2222:1419:0;;;;;;;;;;;;;;;;;",
+							"linkReferences": {}
+						},
+						"deployedBytecode": {
+							"object": "730000000000000000000000000000000000000000301460806040525f5ffd",
+							"sourceMap": "2222:1419:0:-:0;;;;;;;;",
+							"linkReferences": {}
+						},
+						"methodIdentifiers": {}
+					},
+					"metadata": {
+						"compiler": {
+							"version": "0.8.34+commit.80d5c536"
+						},
+						"language": "Solidity",
+						"output": {
+							"abi": [],
+							"devdoc": {
+								"kind": "dev",
+								"methods": {},
+								"version": 1
+							},
+							"userdoc": {
+								"kind": "user",
+								"methods": {},
+								"version": 1
+							}
+						},
+						"settings": {
+							"remappings": [
+								"forge-std/=lib/forge-std/src/"
+							],
+							"optimizer": {
+								"enabled": true,
+								"runs": 20000
+							},
+							"metadata": {
+								"bytecodeHash": "none",
+								"appendCBOR": false
+							},
+							"compilationTarget": {
+								"src/ArbExecutor.sol": "ArbExecutorCodec"
+							},
+							"evmVersion": "shanghai",
+							"libraries": {}
+						},
+						"sources": {
+							"src/ArbExecutor.sol": {
+								"keccak256": "0x73245ef2202943c124e59c3fb0e030c28f1106517b45e358e42f373b2bf56341",
+								"urls": [
+									"bzz-raw://444956bc5e464bdd5cdfc41b1253dd18439f02812769bed5be15addb472d1ad9",
+									"dweb:/ipfs/QmXkEKW85qwZTaFBkrw5QdnncnqZHA8SmGo4haHUpudMhe"
+								],
+								"license": "MIT"
+							}
+						},
+						"version": 1
+					}
+				},
+				"IAaveV3Pool": {
+					"abi": [
+						{
+							"type": "function",
+							"name": "flashLoanSimple",
+							"inputs": [
+								{
+									"name": "receiverAddress",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "asset",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "amount",
+									"type": "uint256",
+									"internalType": "uint256"
+								},
+								{
+									"name": "params",
+									"type": "bytes",
+									"internalType": "bytes"
+								},
+								{
+									"name": "referralCode",
+									"type": "uint16",
+									"internalType": "uint16"
+								}
+							],
+							"outputs": [],
+							"stateMutability": "nonpayable"
+						}
+					],
+					"evm": {
+						"bytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"deployedBytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"methodIdentifiers": {
+							"flashLoanSimple(address,address,uint256,bytes,uint16)": "42b0b77c"
+						}
+					},
+					"metadata": {
+						"compiler": {
+							"version": "0.8.34+commit.80d5c536"
+						},
+						"language": "Solidity",
+						"output": {
+							"abi": [
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "receiverAddress",
+											"type": "address"
+										},
+										{
+											"internalType": "address",
+											"name": "asset",
+											"type": "address"
+										},
+										{
+											"internalType": "uint256",
+											"name": "amount",
+											"type": "uint256"
+										},
+										{
+											"internalType": "bytes",
+											"name": "params",
+											"type": "bytes"
+										},
+										{
+											"internalType": "uint16",
+											"name": "referralCode",
+											"type": "uint16"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "flashLoanSimple"
+								}
+							],
+							"devdoc": {
+								"kind": "dev",
+								"methods": {},
+								"version": 1
+							},
+							"userdoc": {
+								"kind": "user",
+								"methods": {},
+								"version": 1
+							}
+						},
+						"settings": {
+							"remappings": [
+								"forge-std/=lib/forge-std/src/"
+							],
+							"optimizer": {
+								"enabled": true,
+								"runs": 20000
+							},
+							"metadata": {
+								"bytecodeHash": "none",
+								"appendCBOR": false
+							},
+							"compilationTarget": {
+								"src/ArbExecutor.sol": "IAaveV3Pool"
+							},
+							"evmVersion": "shanghai",
+							"libraries": {}
+						},
+						"sources": {
+							"src/ArbExecutor.sol": {
+								"keccak256": "0x73245ef2202943c124e59c3fb0e030c28f1106517b45e358e42f373b2bf56341",
+								"urls": [
+									"bzz-raw://444956bc5e464bdd5cdfc41b1253dd18439f02812769bed5be15addb472d1ad9",
+									"dweb:/ipfs/QmXkEKW85qwZTaFBkrw5QdnncnqZHA8SmGo4haHUpudMhe"
+								],
+								"license": "MIT"
+							}
+						},
+						"version": 1
+					}
+				},
+				"IBalancerVault": {
+					"abi": [
+						{
+							"type": "function",
+							"name": "batchSwap",
+							"inputs": [
+								{
+									"name": "kind",
+									"type": "uint8",
+									"internalType": "enum IBalancerVault.SwapKind"
+								},
+								{
+									"name": "swaps",
+									"type": "tuple[]",
+									"internalType": "struct IBalancerVault.BatchSwapStep[]",
+									"components": [
+										{
+											"name": "poolId",
+											"type": "bytes32",
+											"internalType": "bytes32"
+										},
+										{
+											"name": "assetInIndex",
+											"type": "uint256",
+											"internalType": "uint256"
+										},
+										{
+											"name": "assetOutIndex",
+											"type": "uint256",
+											"internalType": "uint256"
+										},
+										{
+											"name": "amount",
+											"type": "uint256",
+											"internalType": "uint256"
+										},
+										{
+											"name": "userData",
+											"type": "bytes",
+											"internalType": "bytes"
+										}
+									]
+								},
+								{
+									"name": "assets",
+									"type": "address[]",
+									"internalType": "address[]"
+								},
+								{
+									"name": "funds",
+									"type": "tuple",
+									"internalType": "struct IBalancerVault.FundManagement",
+									"components": [
+										{
+											"name": "sender",
+											"type": "address",
+											"internalType": "address"
+										},
+										{
+											"name": "fromInternalBalance",
+											"type": "bool",
+											"internalType": "bool"
+										},
+										{
+											"name": "recipient",
+											"type": "address",
+											"internalType": "address payable"
+										},
+										{
+											"name": "toInternalBalance",
+											"type": "bool",
+											"internalType": "bool"
+										}
+									]
+								},
+								{
+									"name": "limits",
+									"type": "int256[]",
+									"internalType": "int256[]"
+								},
+								{
+									"name": "deadline",
+									"type": "uint256",
+									"internalType": "uint256"
+								}
+							],
+							"outputs": [
+								{
+									"name": "assetDeltas",
+									"type": "int256[]",
+									"internalType": "int256[]"
+								}
+							],
+							"stateMutability": "payable"
+						},
+						{
+							"type": "function",
+							"name": "flashLoan",
+							"inputs": [
+								{
+									"name": "recipient",
+									"type": "address",
+									"internalType": "contract IFlashLoanRecipient"
+								},
+								{
+									"name": "tokens",
+									"type": "address[]",
+									"internalType": "contract IERC20Minimal[]"
+								},
+								{
+									"name": "amounts",
+									"type": "uint256[]",
+									"internalType": "uint256[]"
+								},
+								{
+									"name": "userData",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							],
+							"outputs": [],
+							"stateMutability": "nonpayable"
+						}
+					],
+					"evm": {
+						"bytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"deployedBytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"methodIdentifiers": {
+							"batchSwap(uint8,(bytes32,uint256,uint256,uint256,bytes)[],address[],(address,bool,address,bool),int256[],uint256)": "945bcec9",
+							"flashLoan(address,address[],uint256[],bytes)": "5c38449e"
+						}
+					},
+					"metadata": {
+						"compiler": {
+							"version": "0.8.34+commit.80d5c536"
+						},
+						"language": "Solidity",
+						"output": {
+							"abi": [
+								{
+									"inputs": [
+										{
+											"internalType": "enum IBalancerVault.SwapKind",
+											"name": "kind",
+											"type": "uint8"
+										},
+										{
+											"internalType": "struct IBalancerVault.BatchSwapStep[]",
+											"name": "swaps",
+											"type": "tuple[]",
+											"components": [
+												{
+													"internalType": "bytes32",
+													"name": "poolId",
+													"type": "bytes32"
+												},
+												{
+													"internalType": "uint256",
+													"name": "assetInIndex",
+													"type": "uint256"
+												},
+												{
+													"internalType": "uint256",
+													"name": "assetOutIndex",
+													"type": "uint256"
+												},
+												{
+													"internalType": "uint256",
+													"name": "amount",
+													"type": "uint256"
+												},
+												{
+													"internalType": "bytes",
+													"name": "userData",
+													"type": "bytes"
+												}
+											]
+										},
+										{
+											"internalType": "address[]",
+											"name": "assets",
+											"type": "address[]"
+										},
+										{
+											"internalType": "struct IBalancerVault.FundManagement",
+											"name": "funds",
+											"type": "tuple",
+											"components": [
+												{
+													"internalType": "address",
+													"name": "sender",
+													"type": "address"
+												},
+												{
+													"internalType": "bool",
+													"name": "fromInternalBalance",
+													"type": "bool"
+												},
+												{
+													"internalType": "address payable",
+													"name": "recipient",
+													"type": "address"
+												},
+												{
+													"internalType": "bool",
+													"name": "toInternalBalance",
+													"type": "bool"
+												}
+											]
+										},
+										{
+											"internalType": "int256[]",
+											"name": "limits",
+											"type": "int256[]"
+										},
+										{
+											"internalType": "uint256",
+											"name": "deadline",
+											"type": "uint256"
+										}
+									],
+									"stateMutability": "payable",
+									"type": "function",
+									"name": "batchSwap",
+									"outputs": [
+										{
+											"internalType": "int256[]",
+											"name": "assetDeltas",
+											"type": "int256[]"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "contract IFlashLoanRecipient",
+											"name": "recipient",
+											"type": "address"
+										},
+										{
+											"internalType": "contract IERC20Minimal[]",
+											"name": "tokens",
+											"type": "address[]"
+										},
+										{
+											"internalType": "uint256[]",
+											"name": "amounts",
+											"type": "uint256[]"
+										},
+										{
+											"internalType": "bytes",
+											"name": "userData",
+											"type": "bytes"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "flashLoan"
+								}
+							],
+							"devdoc": {
+								"kind": "dev",
+								"methods": {},
+								"version": 1
+							},
+							"userdoc": {
+								"kind": "user",
+								"methods": {},
+								"version": 1
+							}
+						},
+						"settings": {
+							"remappings": [
+								"forge-std/=lib/forge-std/src/"
+							],
+							"optimizer": {
+								"enabled": true,
+								"runs": 20000
+							},
+							"metadata": {
+								"bytecodeHash": "none",
+								"appendCBOR": false
+							},
+							"compilationTarget": {
+								"src/ArbExecutor.sol": "IBalancerVault"
+							},
+							"evmVersion": "shanghai",
+							"libraries": {}
+						},
+						"sources": {
+							"src/ArbExecutor.sol": {
+								"keccak256": "0x73245ef2202943c124e59c3fb0e030c28f1106517b45e358e42f373b2bf56341",
+								"urls": [
+									"bzz-raw://444956bc5e464bdd5cdfc41b1253dd18439f02812769bed5be15addb472d1ad9",
+									"dweb:/ipfs/QmXkEKW85qwZTaFBkrw5QdnncnqZHA8SmGo4haHUpudMhe"
+								],
+								"license": "MIT"
+							}
+						},
+						"version": 1
+					}
+				},
+				"IERC20Minimal": {
+					"abi": [
+						{
+							"type": "function",
+							"name": "approve",
+							"inputs": [
+								{
+									"name": "spender",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "amount",
+									"type": "uint256",
+									"internalType": "uint256"
+								}
+							],
+							"outputs": [
+								{
+									"name": "",
+									"type": "bool",
+									"internalType": "bool"
+								}
+							],
+							"stateMutability": "nonpayable"
+						},
+						{
+							"type": "function",
+							"name": "balanceOf",
+							"inputs": [
+								{
+									"name": "account",
+									"type": "address",
+									"internalType": "address"
+								}
+							],
+							"outputs": [
+								{
+									"name": "",
+									"type": "uint256",
+									"internalType": "uint256"
+								}
+							],
+							"stateMutability": "view"
+						},
+						{
+							"type": "function",
+							"name": "transfer",
+							"inputs": [
+								{
+									"name": "to",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "amount",
+									"type": "uint256",
+									"internalType": "uint256"
+								}
+							],
+							"outputs": [
+								{
+									"name": "",
+									"type": "bool",
+									"internalType": "bool"
+								}
+							],
+							"stateMutability": "nonpayable"
+						}
+					],
+					"evm": {
+						"bytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"deployedBytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"methodIdentifiers": {
+							"approve(address,uint256)": "095ea7b3",
+							"balanceOf(address)": "70a08231",
+							"transfer(address,uint256)": "a9059cbb"
+						}
+					},
+					"metadata": {
+						"compiler": {
+							"version": "0.8.34+commit.80d5c536"
+						},
+						"language": "Solidity",
+						"output": {
+							"abi": [
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "spender",
+											"type": "address"
+										},
+										{
+											"internalType": "uint256",
+											"name": "amount",
+											"type": "uint256"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "approve",
+									"outputs": [
+										{
+											"internalType": "bool",
+											"name": "",
+											"type": "bool"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "account",
+											"type": "address"
+										}
+									],
+									"stateMutability": "view",
+									"type": "function",
+									"name": "balanceOf",
+									"outputs": [
+										{
+											"internalType": "uint256",
+											"name": "",
+											"type": "uint256"
+										}
+									]
+								},
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "to",
+											"type": "address"
+										},
+										{
+											"internalType": "uint256",
+											"name": "amount",
+											"type": "uint256"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "transfer",
+									"outputs": [
+										{
+											"internalType": "bool",
+											"name": "",
+											"type": "bool"
+										}
+									]
+								}
+							],
+							"devdoc": {
+								"kind": "dev",
+								"methods": {},
+								"version": 1
+							},
+							"userdoc": {
+								"kind": "user",
+								"methods": {},
+								"version": 1
+							}
+						},
+						"settings": {
+							"remappings": [
+								"forge-std/=lib/forge-std/src/"
+							],
+							"optimizer": {
+								"enabled": true,
+								"runs": 20000
+							},
+							"metadata": {
+								"bytecodeHash": "none",
+								"appendCBOR": false
+							},
+							"compilationTarget": {
+								"src/ArbExecutor.sol": "IERC20Minimal"
+							},
+							"evmVersion": "shanghai",
+							"libraries": {}
+						},
+						"sources": {
+							"src/ArbExecutor.sol": {
+								"keccak256": "0x73245ef2202943c124e59c3fb0e030c28f1106517b45e358e42f373b2bf56341",
+								"urls": [
+									"bzz-raw://444956bc5e464bdd5cdfc41b1253dd18439f02812769bed5be15addb472d1ad9",
+									"dweb:/ipfs/QmXkEKW85qwZTaFBkrw5QdnncnqZHA8SmGo4haHUpudMhe"
+								],
+								"license": "MIT"
+							}
+						},
+						"version": 1
+					}
+				},
+				"IFlashLoanRecipient": {
+					"abi": [
+						{
+							"type": "function",
+							"name": "receiveFlashLoan",
+							"inputs": [
+								{
+									"name": "tokens",
+									"type": "address[]",
+									"internalType": "contract IERC20Minimal[]"
+								},
+								{
+									"name": "amounts",
+									"type": "uint256[]",
+									"internalType": "uint256[]"
+								},
+								{
+									"name": "feeAmounts",
+									"type": "uint256[]",
+									"internalType": "uint256[]"
+								},
+								{
+									"name": "userData",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							],
+							"outputs": [],
+							"stateMutability": "nonpayable"
+						}
+					],
+					"evm": {
+						"bytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"deployedBytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"methodIdentifiers": {
+							"receiveFlashLoan(address[],uint256[],uint256[],bytes)": "f04f2707"
+						}
+					},
+					"metadata": {
+						"compiler": {
+							"version": "0.8.34+commit.80d5c536"
+						},
+						"language": "Solidity",
+						"output": {
+							"abi": [
+								{
+									"inputs": [
+										{
+											"internalType": "contract IERC20Minimal[]",
+											"name": "tokens",
+											"type": "address[]"
+										},
+										{
+											"internalType": "uint256[]",
+											"name": "amounts",
+											"type": "uint256[]"
+										},
+										{
+											"internalType": "uint256[]",
+											"name": "feeAmounts",
+											"type": "uint256[]"
+										},
+										{
+											"internalType": "bytes",
+											"name": "userData",
+											"type": "bytes"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "receiveFlashLoan"
+								}
+							],
+							"devdoc": {
+								"kind": "dev",
+								"methods": {},
+								"version": 1
+							},
+							"userdoc": {
+								"kind": "user",
+								"methods": {},
+								"version": 1
+							}
+						},
+						"settings": {
+							"remappings": [
+								"forge-std/=lib/forge-std/src/"
+							],
+							"optimizer": {
+								"enabled": true,
+								"runs": 20000
+							},
+							"metadata": {
+								"bytecodeHash": "none",
+								"appendCBOR": false
+							},
+							"compilationTarget": {
+								"src/ArbExecutor.sol": "IFlashLoanRecipient"
+							},
+							"evmVersion": "shanghai",
+							"libraries": {}
+						},
+						"sources": {
+							"src/ArbExecutor.sol": {
+								"keccak256": "0x73245ef2202943c124e59c3fb0e030c28f1106517b45e358e42f373b2bf56341",
+								"urls": [
+									"bzz-raw://444956bc5e464bdd5cdfc41b1253dd18439f02812769bed5be15addb472d1ad9",
+									"dweb:/ipfs/QmXkEKW85qwZTaFBkrw5QdnncnqZHA8SmGo4haHUpudMhe"
+								],
+								"license": "MIT"
+							}
+						},
+						"version": 1
+					}
+				},
+				"IFlashLoanSimpleReceiver": {
+					"abi": [
+						{
+							"type": "function",
+							"name": "executeOperation",
+							"inputs": [
+								{
+									"name": "asset",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "amount",
+									"type": "uint256",
+									"internalType": "uint256"
+								},
+								{
+									"name": "premium",
+									"type": "uint256",
+									"internalType": "uint256"
+								},
+								{
+									"name": "initiator",
+									"type": "address",
+									"internalType": "address"
+								},
+								{
+									"name": "params",
+									"type": "bytes",
+									"internalType": "bytes"
+								}
+							],
+							"outputs": [
+								{
+									"name": "",
+									"type": "bool",
+									"internalType": "bool"
+								}
+							],
+							"stateMutability": "nonpayable"
+						}
+					],
+					"evm": {
+						"bytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"deployedBytecode": {
+							"object": "",
+							"sourceMap": "",
+							"linkReferences": {}
+						},
+						"methodIdentifiers": {
+							"executeOperation(address,uint256,uint256,address,bytes)": "1b11d0ff"
+						}
+					},
+					"metadata": {
+						"compiler": {
+							"version": "0.8.34+commit.80d5c536"
+						},
+						"language": "Solidity",
+						"output": {
+							"abi": [
+								{
+									"inputs": [
+										{
+											"internalType": "address",
+											"name": "asset",
+											"type": "address"
+										},
+										{
+											"internalType": "uint256",
+											"name": "amount",
+											"type": "uint256"
+										},
+										{
+											"internalType": "uint256",
+											"name": "premium",
+											"type": "uint256"
+										},
+										{
+											"internalType": "address",
+											"name": "initiator",
+											"type": "address"
+										},
+										{
+											"internalType": "bytes",
+											"name": "params",
+											"type": "bytes"
+										}
+									],
+									"stateMutability": "nonpayable",
+									"type": "function",
+									"name": "executeOperation",
+									"outputs": [
+										{
+											"internalType": "bool",
+											"name": "",
+											"type": "bool"
+										}
+									]
+								}
+							],
+							"devdoc": {
+								"kind": "dev",
+								"methods": {},
+								"version": 1
+							},
+							"userdoc": {
+								"kind": "user",
+								"methods": {},
+								"version": 1
+							}
+						},
+						"settings": {
+							"remappings": [
+								"forge-std/=lib/forge-std/src/"
+							],
+							"optimizer": {
+								"enabled": true,
+								"runs": 20000
+							},
+							"metadata": {
+								"bytecodeHash": "none",
+								"appendCBOR": false
+							},
+							"compilationTarget": {
+								"src/ArbExecutor.sol": "IFlashLoanSimpleReceiver"
+							},
+							"evmVersion": "shanghai",
+							"libraries": {}
+						},
+						"sources": {
+							"src/ArbExecutor.sol": {
+								"keccak256": "0x73245ef2202943c124e59c3fb0e030c28f1106517b45e358e42f373b2bf56341",
+								"urls": [
+									"bzz-raw://444956bc5e464bdd5cdfc41b1253dd18439f02812769bed5be15addb472d1ad9",
+									"dweb:/ipfs/QmXkEKW85qwZTaFBkrw5QdnncnqZHA8SmGo4haHUpudMhe"
+								],
+								"license": "MIT"
+							}
+						},
+						"version": 1
+					}
+				}
+			}
+		},
+		"sources": {
+			"src/ArbExecutor.sol": {
+				"id": 0
+			}
+		}
+	}
+}

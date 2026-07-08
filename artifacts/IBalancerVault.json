@@ -1,0 +1,159 @@
+{
+	"deploy": {
+		"VM:-": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"main:1": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"sepolia:11155111": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"Custom": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		}
+	},
+	"data": {
+		"bytecode": {
+			"object": "",
+			"sourceMap": "",
+			"linkReferences": {}
+		},
+		"deployedBytecode": {
+			"object": "",
+			"sourceMap": "",
+			"linkReferences": {}
+		},
+		"methodIdentifiers": {
+			"batchSwap(uint8,(bytes32,uint256,uint256,uint256,bytes)[],address[],(address,bool,address,bool),int256[],uint256)": "945bcec9",
+			"flashLoan(address,address[],uint256[],bytes)": "5c38449e"
+		}
+	},
+	"abi": [
+		{
+			"type": "function",
+			"name": "batchSwap",
+			"inputs": [
+				{
+					"name": "kind",
+					"type": "uint8",
+					"internalType": "enum IBalancerVault.SwapKind"
+				},
+				{
+					"name": "swaps",
+					"type": "tuple[]",
+					"internalType": "struct IBalancerVault.BatchSwapStep[]",
+					"components": [
+						{
+							"name": "poolId",
+							"type": "bytes32",
+							"internalType": "bytes32"
+						},
+						{
+							"name": "assetInIndex",
+							"type": "uint256",
+							"internalType": "uint256"
+						},
+						{
+							"name": "assetOutIndex",
+							"type": "uint256",
+							"internalType": "uint256"
+						},
+						{
+							"name": "amount",
+							"type": "uint256",
+							"internalType": "uint256"
+						},
+						{
+							"name": "userData",
+							"type": "bytes",
+							"internalType": "bytes"
+						}
+					]
+				},
+				{
+					"name": "assets",
+					"type": "address[]",
+					"internalType": "address[]"
+				},
+				{
+					"name": "funds",
+					"type": "tuple",
+					"internalType": "struct IBalancerVault.FundManagement",
+					"components": [
+						{
+							"name": "sender",
+							"type": "address",
+							"internalType": "address"
+						},
+						{
+							"name": "fromInternalBalance",
+							"type": "bool",
+							"internalType": "bool"
+						},
+						{
+							"name": "recipient",
+							"type": "address",
+							"internalType": "address payable"
+						},
+						{
+							"name": "toInternalBalance",
+							"type": "bool",
+							"internalType": "bool"
+						}
+					]
+				},
+				{
+					"name": "limits",
+					"type": "int256[]",
+					"internalType": "int256[]"
+				},
+				{
+					"name": "deadline",
+					"type": "uint256",
+					"internalType": "uint256"
+				}
+			],
+			"outputs": [
+				{
+					"name": "assetDeltas",
+					"type": "int256[]",
+					"internalType": "int256[]"
+				}
+			],
+			"stateMutability": "payable"
+		},
+		{
+			"type": "function",
+			"name": "flashLoan",
+			"inputs": [
+				{
+					"name": "recipient",
+					"type": "address",
+					"internalType": "contract IFlashLoanRecipient"
+				},
+				{
+					"name": "tokens",
+					"type": "address[]",
+					"internalType": "contract IERC20Minimal[]"
+				},
+				{
+					"name": "amounts",
+					"type": "uint256[]",
+					"internalType": "uint256[]"
+				},
+				{
+					"name": "userData",
+					"type": "bytes",
+					"internalType": "bytes"
+				}
+			],
+			"outputs": [],
+			"stateMutability": "nonpayable"
+		}
+	]
+}

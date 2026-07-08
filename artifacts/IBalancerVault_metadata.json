@@ -1,0 +1,169 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "enum IBalancerVault.SwapKind",
+						"name": "kind",
+						"type": "uint8"
+					},
+					{
+						"internalType": "struct IBalancerVault.BatchSwapStep[]",
+						"name": "swaps",
+						"type": "tuple[]",
+						"components": [
+							{
+								"internalType": "bytes32",
+								"name": "poolId",
+								"type": "bytes32"
+							},
+							{
+								"internalType": "uint256",
+								"name": "assetInIndex",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "assetOutIndex",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "amount",
+								"type": "uint256"
+							},
+							{
+								"internalType": "bytes",
+								"name": "userData",
+								"type": "bytes"
+							}
+						]
+					},
+					{
+						"internalType": "address[]",
+						"name": "assets",
+						"type": "address[]"
+					},
+					{
+						"internalType": "struct IBalancerVault.FundManagement",
+						"name": "funds",
+						"type": "tuple",
+						"components": [
+							{
+								"internalType": "address",
+								"name": "sender",
+								"type": "address"
+							},
+							{
+								"internalType": "bool",
+								"name": "fromInternalBalance",
+								"type": "bool"
+							},
+							{
+								"internalType": "address payable",
+								"name": "recipient",
+								"type": "address"
+							},
+							{
+								"internalType": "bool",
+								"name": "toInternalBalance",
+								"type": "bool"
+							}
+						]
+					},
+					{
+						"internalType": "int256[]",
+						"name": "limits",
+						"type": "int256[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "deadline",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "payable",
+				"type": "function",
+				"name": "batchSwap",
+				"outputs": [
+					{
+						"internalType": "int256[]",
+						"name": "assetDeltas",
+						"type": "int256[]"
+					}
+				]
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "contract IFlashLoanRecipient",
+						"name": "recipient",
+						"type": "address"
+					},
+					{
+						"internalType": "contract IERC20Minimal[]",
+						"name": "tokens",
+						"type": "address[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "amounts",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "bytes",
+						"name": "userData",
+						"type": "bytes"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function",
+				"name": "flashLoan"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"remappings": [
+			"forge-std/=lib/forge-std/src/"
+		],
+		"optimizer": {
+			"enabled": true,
+			"runs": 20000
+		},
+		"metadata": {
+			"bytecodeHash": "none",
+			"appendCBOR": false
+		},
+		"compilationTarget": {
+			"src/ArbExecutor.sol": "IBalancerVault"
+		},
+		"evmVersion": "shanghai",
+		"libraries": {}
+	},
+	"sources": {
+		"src/ArbExecutor.sol": {
+			"keccak256": "0x73245ef2202943c124e59c3fb0e030c28f1106517b45e358e42f373b2bf56341",
+			"urls": [
+				"bzz-raw://444956bc5e464bdd5cdfc41b1253dd18439f02812769bed5be15addb472d1ad9",
+				"dweb:/ipfs/QmXkEKW85qwZTaFBkrw5QdnncnqZHA8SmGo4haHUpudMhe"
+			],
+			"license": "MIT"
+		}
+	},
+	"version": 1
+}

@@ -1,0 +1,116 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function",
+				"name": "approve",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				]
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function",
+				"name": "balanceOf",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				]
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function",
+				"name": "transfer",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				]
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"remappings": [
+			"forge-std/=lib/forge-std/src/"
+		],
+		"optimizer": {
+			"enabled": true,
+			"runs": 20000
+		},
+		"metadata": {
+			"bytecodeHash": "none",
+			"appendCBOR": false
+		},
+		"compilationTarget": {
+			"src/ArbExecutor.sol": "IERC20Minimal"
+		},
+		"evmVersion": "shanghai",
+		"libraries": {}
+	},
+	"sources": {
+		"src/ArbExecutor.sol": {
+			"keccak256": "0x73245ef2202943c124e59c3fb0e030c28f1106517b45e358e42f373b2bf56341",
+			"urls": [
+				"bzz-raw://444956bc5e464bdd5cdfc41b1253dd18439f02812769bed5be15addb472d1ad9",
+				"dweb:/ipfs/QmXkEKW85qwZTaFBkrw5QdnncnqZHA8SmGo4haHUpudMhe"
+			],
+			"license": "MIT"
+		}
+	},
+	"version": 1
+}

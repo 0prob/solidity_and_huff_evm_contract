@@ -1,0 +1,65 @@
+{
+	"deploy": {
+		"VM:-": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"main:1": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"sepolia:11155111": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"Custom": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		}
+	},
+	"data": {
+		"bytecode": {
+			"object": "",
+			"sourceMap": "",
+			"linkReferences": {}
+		},
+		"deployedBytecode": {
+			"object": "",
+			"sourceMap": "",
+			"linkReferences": {}
+		},
+		"methodIdentifiers": {
+			"receiveFlashLoan(address[],uint256[],uint256[],bytes)": "f04f2707"
+		}
+	},
+	"abi": [
+		{
+			"type": "function",
+			"name": "receiveFlashLoan",
+			"inputs": [
+				{
+					"name": "tokens",
+					"type": "address[]",
+					"internalType": "contract IERC20Minimal[]"
+				},
+				{
+					"name": "amounts",
+					"type": "uint256[]",
+					"internalType": "uint256[]"
+				},
+				{
+					"name": "feeAmounts",
+					"type": "uint256[]",
+					"internalType": "uint256[]"
+				},
+				{
+					"name": "userData",
+					"type": "bytes",
+					"internalType": "bytes"
+				}
+			],
+			"outputs": [],
+			"stateMutability": "nonpayable"
+		}
+	]
+}

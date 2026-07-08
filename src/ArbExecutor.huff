@@ -269,7 +269,9 @@ wtoken_xfer_failed:
     swap1 0x20 add
     0x00
 validate_vault_loop:
-    dup1 dup4 eq validate_vault_done jumpi
+    // ponytail: dup3 eq compares acc to num_calls (position 2); dup4 would read
+    // below the stack.
+    dup1 dup3 eq validate_vault_done jumpi
     dup2 calldataload
     dup1 0x07 sload eq validate_vault_revert jumpi
     dup2 0x40 add calldataload
@@ -494,8 +496,12 @@ route_hash_ok:
     0x84 calldataload 0x03 sstore
     0xa4 calldataload 0x04 sstore
 
-    0xc0 add
+    // ponytail: EXECUTE_CALLS uses dup4 eq to compare i to position-3 value.
+    // swap5 0xc0 add computes calls_ptr=0x104; dup4 swap1 pushes num_calls
+    // at position 3 so dup4 reads it for correct loop termination.
+    swap5 0xc0 add dup4 swap1
     EXECUTE_CALLS()
+    pop
 
     0x00 0x01 sstore
     ASSERT_PROFIT()
@@ -788,7 +794,7 @@ min_profit_ok:
 
     0x02 0x01 sstore                               // phase=2
     0xc0 add                                        // [calls_ptr]
-    dup1 VALIDATE_NO_VAULT_CALLS()
+    dup1 VALIDATE_NO_VAULT_CALLS()               // dup1 keeps calls_ptr for EXECUTE_CALLS below
     EXECUTE_CALLS()                                 // []
 
     0x04 calldataload 0x04 add                      // [tokens_ptr]
