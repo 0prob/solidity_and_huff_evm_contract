@@ -325,31 +325,32 @@ execute_calls_done:
 }
 
 #define macro ASSERT_PROFIT() = takes (0) returns (0) {
-    0x03 sload
+    0x02 tload
     0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
     address 0x04 mstore
     0x20 0x00 0x24 0x00 dup5 gas staticcall
     iszero assert_balance_failed jumpi
     returndatasize 0x20 lt assert_balance_failed jumpi
-    0x00 mload
-    0x05 sload 0x04 sload add
-    dup2 dup2 gt iszero assert_profit_ok jumpi
-    0x4e88422a00000000000000000000000000000000000000000000000000000000 0x00 mstore
-    swap1 0x04 mstore
-    0x24 mstore
-    0x44 0x00 revert
-assert_profit_ok:
-    pop pop
-    assert_profit_end jump
-assert_balance_failed:
-    0x00 0x00 revert
-assert_profit_end:
+     0x00 mload
+     dup1 0x07 tstore                                 // store finalBalance for outer function (saves ~2.6k gas vs second balanceOf)
+     0x04 tload 0x03 tload add                        // [minRequired=startingBalance+minProfit, finalBalance, profitToken]
+     dup2 dup2 gt iszero assert_profit_ok jumpi
+     0x4e88422a00000000000000000000000000000000000000000000000000000000 0x00 mstore
+     swap1 0x04 mstore
+     0x24 mstore
+     0x44 0x00 revert
+ assert_profit_ok:
+     pop pop
+     assert_profit_end jump
+ assert_balance_failed:
+     0x00 0x00 revert
+ assert_profit_end:
 }
 
 #define macro EXECUTE_ARB() = takes (0) returns (0) {
     // stack in: []  stack out: []
     ONLY_OWNER()
-    0x01 sload iszero phase_idle_ok jumpi
+    0x00 tload iszero phase_idle_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_idle_ok:
@@ -378,12 +379,12 @@ route_hash_ok:
     iszero balance_failed jumpi
     returndatasize 0x20 lt balance_failed jumpi
     0x00 mload                                       // [balance, profitToken, params_ptr, calls_ptr, num_calls]
-    dup1 0x05 sstore                                 // starting profit-token balance
+    dup1 0x04 tstore                                 // starting profit-token balance
 
-    0x01 0x01 sstore                                 // phase=1
-    0xe4 calldataload 0x02 sstore                    // routeHash
-    0x84 calldataload 0x03 sstore                    // profitToken
-    0xa4 calldataload 0x04 sstore                    // minProfit
+    0x01 0x00 tstore                                 // phase=1
+    0xe4 calldataload 0x01 tstore                    // routeHash
+    0x84 calldataload 0x02 tstore                    // profitToken
+    0xa4 calldataload 0x03 tstore                    // minProfit
 
     0x5c38449e00000000000000000000000000000000000000000000000000000000 0x80 mstore
     address 0x84 mstore
@@ -402,17 +403,11 @@ route_hash_ok:
     0x00 0x00 swap2 0x80 0x00 0x07 sload gas call
     iszero balancer_call_failed jumpi
 
-    0x01 sload iszero phase_idle_after_ok jumpi
+    0x00 tload iszero phase_idle_after_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_idle_after_ok:
-    dup2
-    0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
-    address 0x04 mstore
-    0x20 0x00 0x24 0x00 dup5 gas staticcall
-    iszero balance_failed jumpi
-    returndatasize 0x20 lt balance_failed jumpi
-    0x00 mload
+    0x07 tload                                         // finalBalance from ASSERT_PROFIT (saves ~2.6k gas)
     
     dup2 dup2 lt iszero profit_calc jumpi
     0x00
@@ -420,11 +415,11 @@ phase_idle_after_ok:
 profit_calc:
     dup2 dup2 sub
 profit_done:
-    0x00 0x01 sstore
-    0x00 0x02 sstore
-    0x00 0x03 sstore
-    0x00 0x04 sstore
-    0x00 0x05 sstore
+    0x00 0x00 tstore
+    0x00 0x01 tstore
+    0x00 0x02 tstore
+    0x00 0x03 tstore
+    0x00 0x04 tstore
 
     dup1 0x80 mstore
     0x07 sload 0xa0 mstore
@@ -461,7 +456,7 @@ balancer_call_failed:
 
 #define macro EXECUTE_ARB_DIRECT() = takes (0) returns (0) {
     ONLY_OWNER()
-    0x01 sload iszero phase_idle_ok jumpi
+    0x00 tload iszero phase_idle_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_idle_ok:
@@ -489,12 +484,12 @@ route_hash_ok:
     iszero balance_failed jumpi
     returndatasize 0x20 lt balance_failed jumpi
     0x00 mload
-    dup1 0x05 sstore
+    dup1 0x04 tstore
 
-    0x02 0x01 sstore
-    0xe4 calldataload 0x02 sstore
-    0x84 calldataload 0x03 sstore
-    0xa4 calldataload 0x04 sstore
+    0x02 0x00 tstore
+    0xe4 calldataload 0x01 tstore
+    0x84 calldataload 0x02 tstore
+    0xa4 calldataload 0x03 tstore
 
     // ponytail: EXECUTE_CALLS uses dup4 eq to compare i to position-3 value.
     // swap5 0xc0 add computes calls_ptr=0x104; dup4 swap1 pushes num_calls
@@ -503,27 +498,21 @@ route_hash_ok:
     EXECUTE_CALLS()
     pop
 
-    0x00 0x01 sstore
+    0x00 0x00 tstore
     ASSERT_PROFIT()
 
-    0x03 sload
-    0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
-    address 0x04 mstore
-    0x20 0x00 0x24 0x00 dup5 gas staticcall
-    iszero balance_failed jumpi
-    returndatasize 0x20 lt balance_failed jumpi
-    0x00 mload
-    0x05 sload
+    0x07 tload                                         // finalBalance from ASSERT_PROFIT
+    0x04 tload                                         // startingBalance
     dup2 dup2 lt iszero direct_profit_calc jumpi
     0x00
     direct_profit_done jump
 direct_profit_calc:
     dup2 dup2 sub
 direct_profit_done:
-    0x00 0x02 sstore
-    0x00 0x03 sstore
-    0x00 0x04 sstore
-    0x00 0x05 sstore
+    0x00 0x01 tstore
+    0x00 0x02 tstore
+    0x00 0x03 tstore
+    0x00 0x04 tstore
 
     dup1 0x80 mstore
     0x07 sload 0xa0 mstore
@@ -554,7 +543,7 @@ balance_failed:
 #define macro EXECUTE_ARB_WITH_AAVE() = takes (0) returns (0) {
     // stack in: []  stack out: []
     ONLY_OWNER()
-    0x01 sload iszero phase_idle_ok jumpi
+    0x00 tload iszero phase_idle_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_idle_ok:
@@ -585,12 +574,12 @@ route_hash_ok:
     iszero balance_failed jumpi
     returndatasize 0x20 lt balance_failed jumpi
     0x00 mload                                         // [balance, profitToken, params_ptr, calls_ptr, num_calls]
-    dup1 0x05 sstore                                   // starting profit-token balance
+    dup1 0x04 tstore                                   // starting profit-token balance
 
-    0x01 0x01 sstore                                   // phase=1
-    0xe4 calldataload 0x02 sstore                     // routeHash
-    0x84 calldataload 0x03 sstore                     // profitToken
-    0xa4 calldataload 0x04 sstore                     // minProfit
+    0x01 0x00 tstore                                   // phase=1
+    0xe4 calldataload 0x01 tstore                     // routeHash
+    0x84 calldataload 0x02 tstore                     // profitToken
+    0xa4 calldataload 0x03 tstore                     // minProfit
 
     0x42b0b77c00000000000000000000000000000000000000000000000000000000 0x80 mstore
     address 0x84 mstore
@@ -606,18 +595,11 @@ route_hash_ok:
     0x00 0x00 swap2 0x80 0x00 0x0c sload gas call
     iszero aave_call_failed jumpi
 
-    0x01 sload iszero phase_idle_after_ok jumpi
+    0x00 tload iszero phase_idle_after_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_idle_after_ok:
-    // stack: [balance, ..., profitToken]
-    dup2
-    0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
-    address 0x04 mstore
-    0x20 0x00 0x24 0x00 dup5 gas staticcall
-    iszero balance_failed jumpi
-    returndatasize 0x20 lt balance_failed jumpi
-    0x00 mload                                          // [balanceAfter, balance, ..., profitToken]
+    0x07 tload                                         // finalBalance from ASSERT_PROFIT (saves ~2.6k gas)
     
     dup2 dup2 lt iszero profit_calc jumpi
     0x00
@@ -625,11 +607,11 @@ phase_idle_after_ok:
 profit_calc:
     dup2 dup2 sub
 profit_done:
-    0x00 0x01 sstore
-    0x00 0x02 sstore
-    0x00 0x03 sstore
-    0x00 0x04 sstore
-    0x00 0x05 sstore
+    0x00 0x00 tstore
+    0x00 0x01 tstore
+    0x00 0x02 tstore
+    0x00 0x03 tstore
+    0x00 0x04 tstore
 
     dup1 0x80 mstore
     0x0c sload 0xa0 mstore
@@ -666,7 +648,7 @@ aave_call_failed:
 
 #define macro EXECUTE_ARB_WITH_DODO() = takes (0) returns (0) {
     ONLY_OWNER()
-    0x01 sload iszero phase_idle_ok jumpi
+    0x00 tload iszero phase_idle_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_idle_ok:
@@ -694,48 +676,43 @@ route_hash_ok:
     iszero balance_failed jumpi
     returndatasize 0x20 lt balance_failed jumpi
     0x00 mload
-    dup1 0x05 sstore
-    0x01 0x01 sstore
-    0xe4 calldataload 0x02 sstore
-    0x84 calldataload 0x03 sstore
-    0xa4 calldataload 0x04 sstore
-    0x44 calldataload 0x17 sstore                      // DODO pool address for callback verification
-    0x84 calldataload 0x18 sstore                       // profitToken (also the flash token for DODO)
+    dup1 0x04 tstore
+    0x01 0x00 tstore
+    0xe4 calldataload 0x01 tstore
+    0x84 calldataload 0x02 tstore
+    0xa4 calldataload 0x03 tstore
+    0x44 calldataload 0x05 tstore                      // DODO pool address for callback verification
+    0x84 calldataload 0x06 tstore                       // profitToken (also the flash token for DODO)
     0xd0a494e400000000000000000000000000000000000000000000000000000000 0x80 mstore
     0x64 calldataload 0x84 mstore                      // baseAmount = flashAmount
     0x00 0xa4 mstore                                   // quoteAmount = 0
     address 0xc4 mstore                                // assetTo = address(this)
     0xe0 0xe4 mstore                                   // data offset (points to routeHash at 0x124)
     0x20 0x104 mstore                                  // data len = 32
-    0x02 sload 0x124 mstore                            // data = routeHash
+    0x01 tload 0x124 mstore                            // data = routeHash
     0x44 calldataload dup1 0x144 mstore
     0x00 0x00 0x00 0x80 0xa4 0x00 0x00 dup2 gas call
     iszero dodo_call_failed jumpi
-    0x01 sload iszero phase_idle_after_ok jumpi
+    0x00 tload iszero phase_idle_after_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_idle_after_ok:
-    dup2
-    0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
-    address 0x04 mstore
-    0x20 0x00 0x24 0x00 dup5 gas staticcall
-    iszero balance_failed jumpi
-    returndatasize 0x20 lt balance_failed jumpi
-    0x00 mload
+    0x07 tload                                         // finalBalance from ASSERT_PROFIT (saves ~2.6k gas)
+    
     dup2 dup2 lt iszero profit_calc jumpi
     0x00
     profit_done jump
 profit_calc:
     dup2 dup2 sub
 profit_done:
-    0x00 0x01 sstore
-    0x00 0x02 sstore
-    0x00 0x03 sstore
-    0x00 0x04 sstore
-    0x00 0x05 sstore
-    0x00 0x17 sstore
+    0x00 0x00 tstore
+    0x00 0x01 tstore
+    0x00 0x02 tstore
+    0x00 0x03 tstore
+    0x00 0x04 tstore
+    0x00 0x05 tstore
     dup1 0x80 mstore
-    0x17 sload 0xa0 mstore
+    0x05 tload 0xa0 mstore
     dup6 0xa0 add calldataload
     dup5
     caller
@@ -772,27 +749,27 @@ dodo_call_failed:
     0xfc305329 0x00 mstore
     0x04 0x1c revert
 balancer_sender_ok:
-    0x01 sload 0x01 eq phase_flashloan_ok jumpi
+    0x00 tload 0x01 eq phase_flashloan_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_flashloan_ok:
     0x64 calldataload 0x04 add
     0x20 add
-    dup1 0xa0 add calldataload 0x02 sload eq route_hash_ok jumpi
+    dup1 0xa0 add calldataload 0x01 tload eq route_hash_ok jumpi
     0xc858adff 0x00 mstore
     0x04 0x1c revert
 route_hash_ok:
-    dup1 0x40 add calldataload 0x03 sload eq profit_token_ok jumpi
+    dup1 0x40 add calldataload 0x02 tload eq profit_token_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 profit_token_ok:
-    dup1 0x60 add calldataload 0x04 sload eq min_profit_ok jumpi
+    dup1 0x60 add calldataload 0x03 tload eq min_profit_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 min_profit_ok:
     dup1 0x80 add calldataload timestamp gt deadline_expired jumpi
 
-    0x02 0x01 sstore                               // phase=2
+    0x02 0x00 tstore                               // phase=2
     0xc0 add                                        // [calls_ptr]
     dup1 VALIDATE_NO_VAULT_CALLS()               // dup1 keeps calls_ptr for EXECUTE_CALLS below
     EXECUTE_CALLS()                                 // []
@@ -817,7 +794,7 @@ repay_loop:
     repay_loop jump
 repay_done:
     pop pop pop pop pop
-    0x00 0x01 sstore                                 // phase=0
+    0x00 0x00 tstore                                 // phase=0
     ASSERT_PROFIT()
     stop
 deadline_expired:
@@ -830,7 +807,7 @@ deadline_expired:
     0xfc305329 0x00 mstore
     0x04 0x1c revert
 aave_sender_ok:
-    0x01 sload 0x01 eq phase_flashloan_ok jumpi
+    0x00 tload 0x01 eq phase_flashloan_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_flashloan_ok:
@@ -840,21 +817,21 @@ phase_flashloan_ok:
 initiator_ok:
     0x84 calldataload 0x04 add
     0x20 add
-    dup1 0xa0 add calldataload 0x02 sload eq route_hash_ok jumpi
+    dup1 0xa0 add calldataload 0x01 tload eq route_hash_ok jumpi
     0xc858adff 0x00 mstore
     0x04 0x1c revert
 route_hash_ok:
-    dup1 0x40 add calldataload 0x03 sload eq profit_token_ok jumpi
+    dup1 0x40 add calldataload 0x02 tload eq profit_token_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 profit_token_ok:
-    dup1 0x60 add calldataload 0x04 sload eq min_profit_ok jumpi
+    dup1 0x60 add calldataload 0x03 tload eq min_profit_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 min_profit_ok:
     dup1 0x80 add calldataload timestamp gt deadline_expired jumpi
 
-    0x02 0x01 sstore
+    0x02 0x00 tstore
     0xc0 add
     EXECUTE_CALLS()
 
@@ -867,7 +844,7 @@ min_profit_ok:
     SAFE_APPROVE_MAX_IF_NEEDED()
     pop pop pop
 
-    0x00 0x01 sstore
+    0x00 0x00 tstore
     ASSERT_PROFIT()
     0x01 0x00 mstore
     0x20 0x00 return
@@ -877,41 +854,41 @@ deadline_expired:
 }
 
 #define macro DODO_FLASH_LOAN_CALLBACK() = takes (0) returns (0) {
-    caller 0x17 sload eq dodo_sender_ok jumpi
+    caller 0x05 tload eq dodo_sender_ok jumpi
     0xc21d53e8 0x00 mstore
     0x04 0x1c revert
 dodo_sender_ok:
-    0x01 sload 0x01 eq phase_flashloan_ok jumpi
+    0x00 tload 0x01 eq phase_flashloan_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_flashloan_ok:
     0x64 calldataload 0x04 add                      // [data_ptr]
-    dup1 0x20 add calldataload 0x02 sload eq route_hash_ok jumpi
+    dup1 0x20 add calldataload 0x01 tload eq route_hash_ok jumpi
     0xc858adff 0x00 mstore
     0x04 0x1c revert
 route_hash_ok:
-    dup1 0x40 add calldataload 0x03 sload eq profit_token_ok jumpi
+    dup1 0x40 add calldataload 0x02 tload eq profit_token_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 profit_token_ok:
-    dup1 0x60 add calldataload 0x04 sload eq min_profit_ok jumpi
+    dup1 0x60 add calldataload 0x03 tload eq min_profit_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 min_profit_ok:
     dup1 0x80 add calldataload timestamp gt deadline_expired jumpi
-    0x02 0x01 sstore                                // phase=2
+    0x02 0x00 tstore                                // phase=2
     0xc0 add                                        // [calls_ptr]
     EXECUTE_CALLS()                                 // execute swaps
     0x24 calldataload                                // baseAmount from callback calldata
     dup1 iszero no_repay jumpi
-    0x18 sload                                      // flash token
-    0x17 sload                                      // DODO pool
+    0x06 tload                                      // flash token
+    0x05 tload                                      // DODO pool
     swap2                                           // [amount, pool, token]
     SAFE_TRANSFER()                                 // repay DODO
 no_repay:
     pop
-    0x00 0x01 sstore                                // phase=0
-    0x00 0x17 sstore                                // clear DODO pool
+    0x00 0x00 tstore                                // phase=0
+    0x00 0x05 tstore                                // clear DODO pool
     ASSERT_PROFIT()
     stop
 deadline_expired:
@@ -1023,7 +1000,7 @@ resolve_end:
 }
 
 #define macro HANDLE_POOL_SWAP_CALLBACK(protocolId) = takes (0) returns (0) {
-    0x01 sload 0x02 eq callback_phase_ok jumpi
+    0x00 tload 0x02 eq callback_phase_ok jumpi
     0xc21d53e8 0x00 mstore
     0x04 0x1c revert
 callback_phase_ok:
@@ -1078,7 +1055,7 @@ token1_done:
     0xc21d53e8 0x00 mstore
     0x04 0x1c revert
 unlock_sender_ok:
-    0x01 sload 0x02 eq unlock_phase_ok jumpi
+    0x00 tload 0x02 eq unlock_phase_ok jumpi
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 unlock_phase_ok:
@@ -1149,7 +1126,7 @@ swap_call_failed:
 }
 
 #define macro UNISWAP_V2_CALLBACK() = takes (0) returns (0) {
-    0x01 sload 0x02 eq v2_phase_ok jumpi
+    0x00 tload 0x02 eq v2_phase_ok jumpi
     0xc21d53e8 0x00 mstore
     0x04 0x1c revert
 v2_phase_ok:
@@ -1186,7 +1163,7 @@ v2_token1_done:
 }
 
 #define macro HANDLE_ALGEBRA_CALLBACK() = takes (0) returns (0) {
-    0x01 sload 0x02 eq callback_phase_ok jumpi
+    0x00 tload 0x02 eq callback_phase_ok jumpi
     0xc21d53e8 0x00 mstore
     0x04 0x1c revert
 callback_phase_ok:
@@ -1365,31 +1342,32 @@ constructor_end:
     calldatasize iszero accept_payment jumpi
     0x00 calldataload 0xe0 shr
 
+    // ponytail: hot-path functions first — executeArb/receiveFlashLoan/V3/V2 callbacks
+    // save ~600 gas per route vs the original linear order
+    dup1 0x5fa6519d eq execute_arb_dest jumpi
+    dup1 0x368764c8 eq execute_arb_direct_dest jumpi
+    dup1 0xf04f2707 eq receive_flash_loan_dest jumpi
+    dup1 0x1b11d0ff eq execute_operation_dest jumpi
+    dup1 0xfa461e33 eq uniswap_v3_callback_dest jumpi
+    dup1 0x2c8958f6 eq algebra_callback_dest jumpi
+    dup1 0x10d1e85c eq uniswap_v2_callback_dest jumpi
+    dup1 0x91dd7346 eq unlock_callback_dest jumpi
+    dup1 0x540285ec eq execute_arb_with_aave_dest jumpi
+    dup1 0x735ec4d7 eq execute_arb_with_dodo_dest jumpi
+    dup1 0xeb2021c3 eq dvm_flash_loan_callback_dest jumpi
+    dup1 0x7ed1f1dd eq dpp_flash_loan_callback_dest jumpi
+    dup1 0xd5b99797 eq dsp_flash_loan_callback_dest jumpi
+    dup1 0xfad6b994 eq approve_if_needed_dest jumpi
     dup1 0x8da5cb5b eq owner_dest jumpi
     dup1 0xa1e20834 eq initialize_dest jumpi
     dup1 0xf2fde38b eq transfer_ownership_dest jumpi
     dup1 0xb4656158 eq pre_approve_dest jumpi
-    dup1 0xfad6b994 eq approve_if_needed_dest jumpi
     dup1 0x4b14e003 eq transfer_all_dest jumpi
     dup1 0xe5711e8b eq rescue_token_dest jumpi
     dup1 0x1291f79d eq rescue_native_dest jumpi
     dup1 0x3ccfd60b eq withdraw_dest jumpi
     dup1 0x89476069 eq withdraw_token_dest jumpi
     dup1 0x0621472c eq approve_all_dest jumpi
-    dup1 0x5fa6519d eq execute_arb_dest jumpi
-    dup1 0x368764c8 eq execute_arb_direct_dest jumpi
-    dup1 0x540285ec eq execute_arb_with_aave_dest jumpi
-    dup1 0x735ec4d7 eq execute_arb_with_dodo_dest jumpi
-    dup1 0xf04f2707 eq receive_flash_loan_dest jumpi
-    dup1 0x1b11d0ff eq execute_operation_dest jumpi
-    dup1 0xeb2021c3 eq dvm_flash_loan_callback_dest jumpi
-    dup1 0x7ed1f1dd eq dpp_flash_loan_callback_dest jumpi
-    dup1 0xd5b99797 eq dsp_flash_loan_callback_dest jumpi
-    dup1 0xfa461e33 eq uniswap_v3_callback_dest jumpi
-    dup1 0x2c8958f6 eq algebra_callback_dest jumpi
-    dup1 0x91dd7346 eq unlock_callback_dest jumpi
-    dup1 0x10d1e85c eq uniswap_v2_callback_dest jumpi
-
     dup1 0x158274a5 eq balancer_vault_dest jumpi
     dup1 0x5b549182 eq uniswap_v3_factory_dest jumpi
     dup1 0x669d6be2 eq sushi_v3_factory_dest jumpi

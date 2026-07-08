@@ -2,7 +2,7 @@
 solc_version = "0.8.34"
 ffi = true
 
-evm_version = "shanghai"     # Modern EVM with PUSH0 support
+evm_version = "cancun"       # TLOAD/TSTORE for ~150k gas savings per tx on callback params
 # via_ir commented out — Huff is pre-compiled; via_ir causes stack-too-deep on large hex constants in deploy scripts
 optimizer = true
 optimizer_runs = 20000         # Balanced for deployment + runtime gas

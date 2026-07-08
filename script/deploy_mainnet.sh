@@ -8,7 +8,7 @@ OWNER="${OWNER:?OWNER required}"
 cd "$(dirname "$0")/.."
 
 echo "Compiling ArbExecutor MAIN (-f)..."
-INIT=$(huffc src/ArbExecutor.huff MAIN -f --evm-version shanghai)
+INIT=$(huffc src/ArbExecutor.huff MAIN -f --evm-version cancun)
 
 echo "Deploying runtime..."
 DEPLOY_OUT=$(cast send --rpc-url "$RPC" --private-key "$PK" --gas-limit 5000000 --create "$INIT")
