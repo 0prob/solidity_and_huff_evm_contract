@@ -168,6 +168,8 @@ abstract contract ArbExecutor is IFlashLoanRecipient, IFlashLoanSimpleReceiver {
     ///         (the Vault is non-reentrant and cannot be called from `receiveFlashLoan`).
     function executeArbDirect(bytes calldata packedRoute) external virtual returns (uint256 realizedProfit);
     function executeArbWithAave(bytes calldata packedRoute) external virtual returns (uint256 realizedProfit);
+    /// @notice Flash via DODO V2 `flashLoan`. `flashToken` field is the DODO pool; flash asset is `profitToken`.
+    function executeArbWithDodo(bytes calldata packedRoute) external virtual returns (uint256 realizedProfit);
     function executeOperation(address asset, uint256 amount, uint256 premium, address initiator, bytes calldata params)
         external
         virtual

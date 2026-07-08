@@ -248,11 +248,25 @@ contract ArbExecutorAtomicTest {
         recorder = new RecorderTarget();
         BatchSwapTarget batchTarget = new BatchSwapTarget();
         ArbExecutor executor = _deployExecutor(address(batchTarget));
+
+        // Full ABI encoding so the Solidity decoder reaches the function body.
+        IBalancerVault.BatchSwapStep[] memory swaps;
+        address[] memory assets;
+        IBalancerVault.FundManagement memory funds;
+        int256[] memory limits;
         ArbExecutor.Call[] memory calls = new ArbExecutor.Call[](1);
         calls[0] = ArbExecutor.Call({
             target: address(batchTarget),
             value: 0,
-            data: abi.encodeWithSelector(IBalancerVault.batchSwap.selector)
+            data: abi.encodeWithSelector(
+                IBalancerVault.batchSwap.selector,
+                IBalancerVault.SwapKind.GIVEN_IN,
+                swaps,
+                assets,
+                funds,
+                limits,
+                block.timestamp + 1
+            )
         });
 
         (bool ok, bytes memory data) = _callExecuteDirect(executor, calls);

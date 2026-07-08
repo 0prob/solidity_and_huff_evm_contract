@@ -265,22 +265,21 @@ wtoken_xfer_failed:
 
 #define macro VALIDATE_NO_VAULT_CALLS() = takes (1) returns (0) {
     // Reject routes that call the Balancer Vault during a Vault flash-loan callback.
+    // Frame: [num_calls, ptr, i] — same as EXECUTE_CALLS.
+    // Loop check is `dup1 dup4 eq` (after dup1, 4th item is num_calls).
     dup1 calldataload
     swap1 0x20 add
     0x00
 validate_vault_loop:
-    // ponytail: dup3 eq compares acc to num_calls (position 2); dup4 would read
-    // below the stack.
-    dup1 dup3 eq validate_vault_done jumpi
+    dup1 dup4 eq validate_vault_done jumpi
     dup2 calldataload
-    dup1 0x07 sload eq validate_vault_revert jumpi
-    dup2 0x40 add calldataload
-    dup1 dup4 add 0x60 add
-    0x00 mstore
-    pop
-    swap1 pop
-    0x01 add
-    0x00 mload swap1
+    0x07 sload eq validate_vault_revert jumpi
+    // stack: [num_calls, ptr, i] — advance ptr by 0x60 + dataLen, then i++
+    dup2 0x40 add calldataload          // [nc, ptr, i, dataLen]
+    dup1 dup4 add 0x60 add              // [nc, ptr, i, dataLen, next_ptr]
+    swap3 pop                           // [nc, next_ptr, i, dataLen]
+    pop                                 // [nc, next_ptr, i]
+    0x01 add                            // [nc, next_ptr, i+1]
     validate_vault_loop jump
 validate_vault_revert:
     0x6be92da6 0x00 mstore
@@ -491,12 +490,10 @@ route_hash_ok:
     0x84 calldataload 0x02 tstore
     0xa4 calldataload 0x03 tstore
 
-    // ponytail: EXECUTE_CALLS uses dup4 eq to compare i to position-3 value.
-    // swap5 0xc0 add computes calls_ptr=0x104; dup4 swap1 pushes num_calls
-    // at position 3 so dup4 reads it for correct loop termination.
-    swap5 0xc0 add dup4 swap1
+    // Packed calls always start at calldata 0x104 for executeArbDirect(bytes).
+    // Junk below the stack is fine — EXECUTE_CALLS only needs calls_ptr on top.
+    0x104
     EXECUTE_CALLS()
-    pop
 
     0x00 0x00 tstore
     ASSERT_PROFIT()
@@ -681,17 +678,21 @@ route_hash_ok:
     0xe4 calldataload 0x01 tstore
     0x84 calldataload 0x02 tstore
     0xa4 calldataload 0x03 tstore
-    0x44 calldataload 0x05 tstore                      // DODO pool address for callback verification
-    0x84 calldataload 0x06 tstore                       // profitToken (also the flash token for DODO)
+    0x44 calldataload 0x05 tstore                      // DODO pool address (flashToken field)
+    0x84 calldataload 0x06 tstore                       // flash/repay token = profitToken
+    // dvmFlashLoan(baseAmount, quoteAmount, assetTo, data) — data is full packed route
     0xd0a494e400000000000000000000000000000000000000000000000000000000 0x80 mstore
     0x64 calldataload 0x84 mstore                      // baseAmount = flashAmount
     0x00 0xa4 mstore                                   // quoteAmount = 0
     address 0xc4 mstore                                // assetTo = address(this)
-    0xe0 0xe4 mstore                                   // data offset (points to routeHash at 0x124)
-    0x20 0x104 mstore                                  // data len = 32
-    0x01 tload 0x124 mstore                            // data = routeHash
-    0x44 calldataload dup1 0x144 mstore
-    0x00 0x00 0x00 0x80 0xa4 0x00 0x00 dup2 gas call
+    0x80 0xe4 mstore                                   // data offset (relative to arg start @0x84)
+    0x24 calldataload                                  // packed route length
+    dup1 0x104 mstore                                  // data length
+    dup1 0x44 0x124 calldatacopy                       // copy full packed route into data
+    0xa4 add                                           // call size = 0xa4 + routeLen
+    0x00 0x00 swap2 0x80 0x00                          // retSize, retOffset, argSize, argOffset, value
+    0x05 tload                                         // pool
+    gas call
     iszero dodo_call_failed jumpi
     0x00 tload iszero phase_idle_after_ok jumpi
     0xadd4adc0 0x00 mstore
@@ -711,6 +712,7 @@ profit_done:
     0x00 0x03 tstore
     0x00 0x04 tstore
     0x00 0x05 tstore
+    0x00 0x06 tstore
     dup1 0x80 mstore
     0x05 tload 0xa0 mstore
     dup6 0xa0 add calldataload
@@ -862,8 +864,10 @@ dodo_sender_ok:
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 phase_flashloan_ok:
-    0x64 calldataload 0x04 add                      // [data_ptr]
-    dup1 0x20 add calldataload 0x01 tload eq route_hash_ok jumpi
+    // data is the full packed route (same layout as Balancer userData / Aave params)
+    0x64 calldataload 0x04 add
+    0x20 add                                        // [data_ptr]
+    dup1 0xa0 add calldataload 0x01 tload eq route_hash_ok jumpi
     0xc858adff 0x00 mstore
     0x04 0x1c revert
 route_hash_ok:
@@ -889,6 +893,7 @@ no_repay:
     pop
     0x00 0x00 tstore                                // phase=0
     0x00 0x05 tstore                                // clear DODO pool
+    0x00 0x06 tstore                                // clear flash token
     ASSERT_PROFIT()
     stop
 deadline_expired:
