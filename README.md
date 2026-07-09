@@ -79,6 +79,7 @@ Set `OWNER` to the bot wallet at deploy time. `initialize()` must be called post
 | `test/HuffDeployer.sol` | Compiles Huff via `ffi` + `huffc`; deploys constructor bytecode and `vm.etch`es runtime |
 | `test/ArbExecutorAtomic.t.sol` | Local tests with mock tokens, mock vaults, and route execution scenarios |
 | `test/ArbExecutorAaveFork.t.sol` | Fork tests against live Polygon Aave V3 Pool |
+| `test/HashDebug.t.sol` | Standalone route-hash debug utility (dev only) |
 | `script/Deploy.s.sol` | Foundry broadcast deploy (constructor args embedded at deploy) |
 | `script/deploy_mainnet.sh` | Mainnet deploy via `cast` (runtime CREATE + post-deploy `initialize`) |
 | `deploy` | Shell wrapper around `forge script script/Deploy.s.sol --broadcast` |
@@ -91,6 +92,7 @@ Requires [Foundry](https://book.getfoundry.sh/), `huffc` (`cargo install huffc`)
 
 ```bash
 git submodule update --init --recursive
+cp .env.example .env   # then edit OWNER, PRIVATE_KEY, RPC_URL
 ```
 
 ## Commands
@@ -102,7 +104,7 @@ forge build
 # Unit tests (mocks, no RPC)
 forge test --match-contract "AuthTest|AtomicTest|PrintTest" -vvv
 
-# Fork tests (Polygon RPC via POLYGON_RPC_URL or --rpc-url)
+# Fork tests (requires POLYGON_RPC_URL, falls back to polygon-bor-rpc.publicnode.com)
 forge test --match-contract "AaveFork|Debug" -vvv
 
 # Deploy (Foundry script — constructor initializes storage)
