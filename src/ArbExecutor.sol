@@ -7,7 +7,8 @@ interface IERC20Minimal {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
-/// @dev Balancer V2 IFlashLoanRecipient — pkg/interfaces/contracts/vault/IFlashLoanRecipient.sol
+/// @dev Balancer V2 IFlashLoanRecipient — abis/balancer-v2/IFlashLoanRecipient.sol
+///      (upstream: balancer/balancer-v2-monorepo pkg/interfaces/contracts/vault/IFlashLoanRecipient.sol)
 interface IFlashLoanRecipient {
     function receiveFlashLoan(
         IERC20Minimal[] memory tokens,
@@ -17,7 +18,8 @@ interface IFlashLoanRecipient {
     ) external;
 }
 
-/// @dev Aave V3 IFlashLoanSimpleReceiver — misc/flashloan/interfaces/IFlashLoanSimpleReceiver.sol
+/// @dev Aave V3 IFlashLoanSimpleReceiver — abis/aave-v3/IFlashLoanSimpleReceiver.sol
+///      (upstream: aave/aave-v3-core contracts/flashloan/interfaces/IFlashLoanSimpleReceiver.sol)
 interface IFlashLoanSimpleReceiver {
     function executeOperation(
         address asset,
@@ -28,7 +30,8 @@ interface IFlashLoanSimpleReceiver {
     ) external returns (bool);
 }
 
-/// @dev Aave V3 IPool flash-loan entry — interfaces/IPool.sol
+/// @dev Aave V3 IPool flash-loan entry — abis/aave-v3/IPool.sol
+///      (upstream: aave/aave-v3-core contracts/interfaces/IPool.sol)
 interface IAaveV3Pool {
     function flashLoanSimple(
         address receiverAddress,
@@ -39,7 +42,8 @@ interface IAaveV3Pool {
     ) external;
 }
 
-/// @dev Balancer V2 IVault swap + flash loan surface — pkg/interfaces/contracts/vault/IVault.sol
+/// @dev Balancer V2 IVault swap + flash loan surface — abis/balancer-v2/IVault.sol
+///      (upstream: balancer/balancer-v2-monorepo pkg/interfaces/contracts/vault/IVault.sol)
 interface IBalancerVault {
     enum SwapKind {
         GIVEN_IN,
