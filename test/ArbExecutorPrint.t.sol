@@ -29,11 +29,6 @@ contract ArbExecutorPrintTest is Test {
             console.log("Slot 14 (uniV2):", uint256(vm.load(addr, bytes32(uint256(14)))));
             console.log("Slot 15 (sushiV2):", uint256(vm.load(addr, bytes32(uint256(15)))));
             console.log("Slot 16 (quickV2):", uint256(vm.load(addr, bytes32(uint256(16)))));
-            console.log("Slot 17 (dfynV2):", uint256(vm.load(addr, bytes32(uint256(17)))));
-            console.log("Slot 18 (apeV2):", uint256(vm.load(addr, bytes32(uint256(18)))));
-            console.log("Slot 19 (meshV2):", uint256(vm.load(addr, bytes32(uint256(19)))));
-            console.log("Slot 20 (jetV2):", uint256(vm.load(addr, bytes32(uint256(20)))));
-            console.log("Slot 21 (comethV2):", uint256(vm.load(addr, bytes32(uint256(21)))));
             console.log("Slot 22 (quickV4):", uint256(vm.load(addr, bytes32(uint256(22)))));
             console.log("Slot 6 (locked):", uint256(vm.load(addr, bytes32(uint256(6)))));
         }

@@ -911,11 +911,6 @@ deadline_expired:
     dup1 0x07 eq is_uni_v2 jumpi
     dup1 0x08 eq is_sushi_v2 jumpi
     dup1 0x09 eq is_quick_v2 jumpi
-    dup1 0x0a eq is_dfyn_v2 jumpi
-    dup1 0x0b eq is_apeswap_v2 jumpi
-    dup1 0x0c eq is_meshswap_v2 jumpi
-    dup1 0x0d eq is_jetswap_v2 jumpi
-    dup1 0x0e eq is_comethswap_v2 jumpi
     0xf850442b00000000000000000000000000000000000000000000000000000000 0x00 mstore
     dup1 0x04 mstore
     0x24 0x00 revert
@@ -951,21 +946,6 @@ is_sushi_v2:
     v2_call jump
 is_quick_v2:
     0x10 sload
-    v2_call jump
-is_dfyn_v2:
-    0x11 sload
-    v2_call jump
-is_apeswap_v2:
-    0x12 sload
-    v2_call jump
-is_meshswap_v2:
-    0x13 sload
-    v2_call jump
-is_jetswap_v2:
-    0x14 sload
-    v2_call jump
-is_comethswap_v2:
-    0x15 sload
     v2_call jump
 uni_sushi_call:
     0x1698ee8200000000000000000000000000000000000000000000000000000000 0x00 mstore
@@ -1383,11 +1363,6 @@ constructor_end:
     dup1 0x59d0f713 eq uniswap_v2_factory_dest jumpi
     dup1 0xea354b7e eq sushi_v2_factory_dest jumpi
     dup1 0xae2c50be eq quickswap_v2_factory_dest jumpi
-    dup1 0x248c78bf eq dfyn_v2_factory_dest jumpi
-    dup1 0x554dc551 eq apeswap_v2_factory_dest jumpi
-    dup1 0xbaa27cf4 eq meshswap_v2_factory_dest jumpi
-    dup1 0x5428f432 eq jetswap_v2_factory_dest jumpi
-    dup1 0x340cef0a eq comethswap_v2_factory_dest jumpi
     dup1 0x04075137 eq quickswap_v4_factory_dest jumpi
 
     0x00 0x00 revert
@@ -1465,16 +1440,6 @@ sushi_v2_factory_dest:
     GET_SLOT(0x0f)
 quickswap_v2_factory_dest:
     GET_SLOT(0x10)
-dfyn_v2_factory_dest:
-    GET_SLOT(0x11)
-apeswap_v2_factory_dest:
-    GET_SLOT(0x12)
-meshswap_v2_factory_dest:
-    GET_SLOT(0x13)
-jetswap_v2_factory_dest:
-    GET_SLOT(0x14)
-comethswap_v2_factory_dest:
-    GET_SLOT(0x15)
 quickswap_v4_factory_dest:
     GET_SLOT(0x16)
 uniswap_v2_callback_dest:

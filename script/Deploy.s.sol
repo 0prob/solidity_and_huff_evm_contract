@@ -22,11 +22,11 @@ contract DeployScript is Script {
             address(0x9e5a52f57b3038F1b8EEE45f28b3c196dE8ce761),
             address(0xc35DADB65012eC5796536bD9864eD8773aBc74C4),
             address(0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32),
-            address(0xE7Fb3e833eFE5F9c441105EB65Ef8b261266423B),
-            address(0xCf083Be4164828f00cAE704EC15a36D711491284),
-            address(0x9F3044B7945fe442E9A4d76A047783e1d70DCF80),
-            address(0x668ad0Ed2622C62e24F0D5ab6B31E99125Ce0F46),
-            address(0x93bc755FC5d27fa1Fa7c146C0625D1Cd18914d54),
+            address(0),
+            address(0),
+            address(0),
+            address(0),
+            address(0),
             address(0x0000000000000000000000000000000000000001)
         );
         bytes memory args = bytes.concat(args1, args2);

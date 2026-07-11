@@ -54,7 +54,7 @@ Pool-based DEX callbacks verify the caller against an on-chain factory lookup be
 | 3 | Algebra | QuickSwap V3 | `algebraSwapCallback` |
 | 4 | Algebra | QuickSwap V4 | `algebraSwapCallback` |
 | — | V4 | Uniswap V4 | `unlockCallback` (via PoolManager) |
-| 7–14 | V2 | Uniswap V2, SushiSwap V2, QuickSwap V2, DFYN, ApeSwap, MeshSwap, JetSwap, ComethSwap | `uniswapV2Call` |
+| 7–9 | V2 | Uniswap V2, SushiSwap V2, QuickSwap V2 | `uniswapV2Call` |
 | — | DODO | DODO V2 (DVM/DPP/DSP) | `dvmFlashLoanCall` / `dppFlashLoanCall` / `dspFlashLoanCall` |
 
 **Arbitrary calls** — Curve, DODO V2, WooFi, Balancer `batchSwap`, and any other protocol are encoded as plain `target/value/data` steps in the route. The bot supplies full calldata (typically `approve` + `swap`). These have no dedicated callback handler.
@@ -82,7 +82,6 @@ Set `OWNER` to the bot wallet at deploy time. `initialize()` must be called post
 | `test/HashDebug.t.sol` | Standalone route-hash debug utility (dev only) |
 | `script/Deploy.s.sol` | Foundry broadcast deploy (constructor args embedded at deploy) |
 | `script/deploy_mainnet.sh` | Mainnet deploy via `cast` (runtime CREATE + post-deploy `initialize`) |
-| `deploy` | Shell wrapper around `forge script script/Deploy.s.sol --broadcast` |
 
 Deploy-time storage (slots 0–22): owner, Balancer Vault, V3/V2 factory addresses, Aave Pool, Uniswap V4 PoolManager, QuickSwap V4 factory placeholder, DODO pools.
 
@@ -92,7 +91,7 @@ Requires [Foundry](https://book.getfoundry.sh/), `huffc` (`cargo install huffc`)
 
 ```bash
 git submodule update --init --recursive
-cp .env.example .env   # then edit OWNER, PRIVATE_KEY, RPC_URL
+cp .env.example .env   # then edit OWNER, PRIVATE_KEY, POLYGON_RPC_URL
 ```
 
 ## Commands
@@ -107,10 +106,7 @@ forge test --match-contract "AuthTest|AtomicTest|PrintTest" -vvv
 # Fork tests (requires POLYGON_RPC_URL, falls back to polygon-bor-rpc.publicnode.com)
 forge test --match-contract "AaveFork|Debug" -vvv
 
-# Deploy (Foundry script — constructor initializes storage)
-OWNER=<0x...> RPC_URL=<url> PRIVATE_KEY=<key> ./deploy
-
-# Deploy (cast — runtime bytecode + separate initialize call)
+# Deploy (cast — runtime CREATE + separate initialize call)
 OWNER=<0x...> PRIVATE_KEY=<key> ./script/deploy_mainnet.sh
 ```
 
