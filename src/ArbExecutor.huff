@@ -347,6 +347,46 @@ execute_calls_done:
  assert_profit_end:
 }
 
+// Aave V3 pulls amount+premium AFTER executeOperation returns (FlashLoanLogic).
+// When flash asset == profitToken, minProfit must be checked on the post-pull balance.
+#define macro ASSERT_PROFIT_AAVE() = takes (0) returns (0) {
+    0x02 tload
+    0x70a0823100000000000000000000000000000000000000000000000000000000 0x00 mstore
+    address 0x04 mstore
+    0x20 0x00 0x24 0x00 dup5 gas staticcall
+    iszero assert_aave_bal_fail jumpi
+    returndatasize 0x20 lt assert_aave_bal_fail jumpi
+    0x00 mload                                      // [bal, profitToken]
+
+    0x04 calldataload dup3 eq iszero aave_diff_token jumpi
+    0x24 calldataload
+    0x44 calldataload
+    add                                             // [repay, bal, profitToken]
+    dup2 dup2 gt iszero aave_repay_fit jumpi        // repay > bal → InsufficientProfit
+    0x4e88422a00000000000000000000000000000000000000000000000000000000 0x00 mstore
+    dup2 0x04 mstore
+    0x24 mstore
+    0x44 0x00 revert
+aave_repay_fit:
+    swap1 sub                                       // [bal-repay, profitToken]
+    aave_profit_check jump
+aave_diff_token:
+aave_profit_check:
+    dup1 0x07 tstore                                // post-pull effective balance for outer realizedProfit
+    0x04 tload 0x03 tload add                       // [minRequired, effective, profitToken]
+    dup2 dup2 gt iszero aave_profit_ok jumpi
+    0x4e88422a00000000000000000000000000000000000000000000000000000000 0x00 mstore
+    swap1 0x04 mstore
+    0x24 mstore
+    0x44 0x00 revert
+aave_profit_ok:
+    pop pop pop
+    assert_aave_end jump
+assert_aave_bal_fail:
+    0x00 0x00 revert
+assert_aave_end:
+}
+
 #define macro EXECUTE_ARB() = takes (0) returns (0) {
     // stack in: []  stack out: []
     ONLY_OWNER()
@@ -841,6 +881,9 @@ min_profit_ok:
     0xc0 add
     EXECUTE_CALLS()
 
+    // Check minProfit against post-pull balances before approving Aave's transferFrom.
+    ASSERT_PROFIT_AAVE()
+
     0x04 calldataload
     0x0c sload
     0x24 calldataload
@@ -851,7 +894,6 @@ min_profit_ok:
     pop pop pop
 
     0x00 0x00 tstore
-    ASSERT_PROFIT()
     0x01 0x00 mstore
     0x20 0x00 return
 deadline_expired:

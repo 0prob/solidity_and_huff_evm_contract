@@ -2,16 +2,28 @@
 out/
 cache/
 broadcast/
+artifacts/
 
-# Libraries (install via forge install)
+# Libraries (install via forge install / git submodules)
 lib/
 
-# Environment
+# Environment / secrets
 .env
+.env.*
+!.env.example
 node_modules/
 
-# OS junk
+# Local tool / agent caches (non-workspace)
+.tmp/
+.omo/
+.deps/
+.serena/cache/
+.serena/project.local.yml
+.serena/memories/
+
+# OS / editor junk
 .DS_Store
 *.swp
 *.swo
 *~
+*.log

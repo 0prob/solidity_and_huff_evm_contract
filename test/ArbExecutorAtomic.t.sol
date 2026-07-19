@@ -357,6 +357,55 @@ contract ArbExecutorAtomicTest {
         require(token.allowances(address(executor), address(aavePool)) > 0, "executor should approve pool");
     }
 
+    /// Happy path: route profit covers premium + minProfit on the post-pull balance.
+    function testExecuteArbWithAaveAcceptsMinProfitAfterPremium() public {
+        token = new MockToken();
+        MintToCallerTarget minter = new MintToCallerTarget();
+        MockAavePool aavePool = new MockAavePool();
+        ArbExecutor executor = _deployExecutorWithAave(address(new CallbackVault()), address(aavePool));
+
+        // flash=2000 → premium=1; mint +3 in-route → post-pull effective=2 ≥ minProfit=1.
+        ArbExecutor.Call[] memory calls = new ArbExecutor.Call[](1);
+        calls[0] = ArbExecutor.Call({
+            target: address(minter),
+            value: 0,
+            data: abi.encodeWithSelector(MintToCallerTarget.mintToCaller.selector, address(token), uint256(3))
+        });
+        (bytes memory packedRoute,) = ArbExecutorCodec.buildPackedRoute(
+            address(token), 2000, address(token), 1, block.timestamp + 1 days, _toCodecCalls(calls)
+        );
+        (bool ok, bytes memory data) =
+            address(executor).call(abi.encodeWithSelector(ArbExecutor.executeArbWithAave.selector, packedRoute));
+        require(ok, string(data));
+        require(abi.decode(data, (uint256)) == 2, "realized profit must be post-pull net");
+        require(token.balances(address(executor)) == 2, "executor keeps net after premium");
+        require(token.balances(address(aavePool)) == 2001, "pool pulls amount+premium");
+    }
+
+    /// Aave pulls amount+premium after executeOperation; minProfit must use post-pull balance.
+    function testExecuteArbWithAaveEnforcesMinProfitAfterPremium() public {
+        token = new MockToken();
+        recorder = new RecorderTarget();
+        MockAavePool aavePool = new MockAavePool();
+        ArbExecutor executor = _deployExecutorWithAave(address(new CallbackVault()), address(aavePool));
+        ArbExecutor.Call[] memory calls = _baseCalls(1);
+
+        // starting=2, flash=2000, premium=1 → post-pull effective=1.
+        // minProfit=1 requires effective>=3. Pre-pull bal=2002 would falsely pass.
+        token.mint(address(executor), 2);
+        (bytes memory packedRoute,) = ArbExecutorCodec.buildPackedRoute(
+            address(token), 2000, address(token), 1, block.timestamp + 1 days, _toCodecCalls(calls)
+        );
+        (bool ok, bytes memory data) =
+            address(executor).call(abi.encodeWithSelector(ArbExecutor.executeArbWithAave.selector, packedRoute));
+        require(!ok, "must fail when net after premium < minProfit");
+        bytes4 selector;
+        assembly {
+            selector := mload(add(data, 32))
+        }
+        require(selector == ArbExecutor.InsufficientProfit.selector, "expected InsufficientProfit");
+    }
+
     function testExecuteOperationRevertsIfNotAavePool() public {
         token = new MockToken();
         recorder = new RecorderTarget();

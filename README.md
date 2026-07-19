@@ -1,50 +1,88 @@
 # ArbExecutor
 
-Flash-loan-powered arbitrage executor for Polygon. Written in Huff (hand-optimized assembly), deployed as deterministic bytecode. Zero upfront capital — swap principal comes from flash loans.
+Flash-loan-powered arbitrage executor for Polygon. Hand-optimized Huff assembly with a Solidity codec/interface layer. Zero working capital — swap principal is borrowed, swapped, and repaid in one atomic transaction.
+
+## Architecture
+
+| Layer | Role |
+|-------|------|
+| `src/ArbExecutor.huff` | Canonical runtime — dispatch, flash-loan handlers, pool callbacks, auth, profit checks |
+| `src/ArbExecutor.sol` | Abstract interface, custom errors, `ArbExecutorCodec`, Balancer/Aave interface types |
+| `abis/` | Upstream Balancer V2 + Aave V3 flash-loan surfaces (reference only) |
+| `test/HuffDeployer.sol` | Compiles Huff via `ffi` + `huffc`; CREATE + `vm.etch` for tests/scripts |
+| `script/` | Deploy paths (Foundry broadcast vs cast + `initialize`) |
+
+Requires Cancun (`TLOAD`/`TSTORE`) for callback-phase and DODO context. Configured in `foundry.toml` (`evm_version = "cancun"`, `ffi = true`).
 
 ## Execution Modes
 
-The contract exposes four owner-only entry points. All return `uint256 realizedProfit` denominated in the profit token.
+Four owner-only entry points. Each returns `uint256 realizedProfit` in the profit token.
 
 | Function | Flash loan | Use when |
 |----------|------------|----------|
-| `executeArb` | Balancer V2 Vault | Default path; borrows via `flashLoan` → `receiveFlashLoan` |
-| `executeArbWithAave` | Aave V3 Pool (`flashLoanSimple`) | Single-asset flash loan with premium-based repayment |
-| `executeArbWithDodo` | DODO V2 Pool (`dvmFlashLoan` / `dppFlashLoan` / `dspFlashLoan`) | Alternative flash loan source — repaid via `transfer` in callback |
-| `executeArbDirect` | None | Balancer `batchSwap` / Vault flash-swap routes — the Vault is non-reentrant and cannot be called from inside `receiveFlashLoan` |
+| `executeArb` | Balancer V2 Vault `flashLoan` → `receiveFlashLoan` | Default path |
+| `executeArbWithAave` | Aave V3 Pool `flashLoanSimple` → `executeOperation` | Single-asset loan; Pool pulls `amount + premium` after callback |
+| `executeArbWithDodo` | DODO V2 pool `dvmFlashLoan` → `dvm`/`dpp`/`dsp` flash-loan callback | Alt lender; see field semantics below |
+| `executeArbDirect` | None | Balancer `batchSwap` / Vault flash-swaps — Vault is non-reentrant, so it cannot be called from `receiveFlashLoan` |
 
 ```
 executeArb:           owner → flashLoan → receiveFlashLoan → [calls] → repay(transfer) → profit check
-executeArbWithAave:   owner → flashLoanSimple → executeOperation → [calls] → repay(approve+transferFrom) → profit check
-executeArbWithDodo:   owner → dvmFlashLoan → DODO_FLASH_LOAN_CALLBACK → [calls] → repay(transfer) → profit check
+executeArbWithAave:   owner → flashLoanSimple → executeOperation → [calls] → approve → (Pool pulls amount+premium) → profit check
+executeArbWithDodo:   owner → dvmFlashLoan → DODO callback → [calls] → repay(transfer) → profit check
 executeArbDirect:     owner → [calls] → profit check
 ```
 
-The contract holds no working capital. Failed executions revert atomically (`InsufficientProfit`, `ExternalCallFailed`, etc.) — the owner only pays gas.
+Failed routes revert atomically (`InsufficientProfit`, `ExternalCallFailed`, …). The owner pays gas only.
 
-### State machine
+**DODO field semantics** (`executeArbWithDodo`): `flashToken` is the DODO pool address; the borrowed asset is `profitToken`; `flashAmount` is the base amount passed to `dvmFlashLoan` (quote amount is always `0`). Entry always uses the `dvmFlashLoan` selector; DVM/DPP/DSP pools may call back via different callback selectors, all handled by the same repay path.
+
+**Bot integration:** sibling `rpbot` (`../c`) disables DODO flash dispatch until external (non-route) DODO lenders exist. Prefer `executeArb` / `executeArbWithAave` / `executeArbDirect` from off-chain routing.
+
+### Phase machine (transient storage)
 
 `IDLE (0) → FLASHLOAN (1) → CALLBACK (2) → IDLE (0)`
 
-Reentrancy is blocked outside callback phases. Balancer Vault calls inside a Vault flash-loan callback are rejected (`BalancerVaultReentrancy`) — the `VALIDATE_NO_VAULT_CALLS` macro iterates the route's call targets and reverts if any matches the Vault address.
+Phase lives in transient slot `0`. Callbacks outside the flash-loan window revert (`FlashLoanOnly` / `CallbackOnly` / related). Balancer Vault targets inside a Vault flash-loan callback are rejected (`BalancerVaultReentrancy`) via `VALIDATE_NO_VAULT_CALLS`.
+
+A separate permanent reentrancy guard on storage slot `6` (`1` unlocked / `2` locked) protects `rescueToken` / `rescueNative` only.
 
 ## Route Format
 
-Routes are ABI-packed by `ArbExecutorCodec` in `src/ArbExecutor.sol` (usable from off-chain code or tests):
+Packed by `ArbExecutorCodec` (`src/ArbExecutor.sol`) — usable from bots and tests:
 
 ```
-flashToken | flashAmount | profitToken | minProfit | deadline | routeHash | calls[]
+flashToken | flashAmount | profitToken | minProfit | deadline | routeHash | packedCalls
 ```
 
-Each call in `calls[]` is `target | value | dataLen | data`. Up to 12 calls per route. `routeHash` must equal `keccak256(packedCalls)`; mismatch reverts with `InvalidRouteHash`.
+Each word above is 32 bytes. `packedCalls` is:
 
-`minProfit` is checked against the profit-token balance delta (final − starting). Unprofitable routes revert with `InsufficientProfit`.
+```
+numCalls | (target | value | dataLen | data)×N
+```
 
-Helper functions on the Solidity interface: `buildPackedRoute`, `packExecutorCalls`, `computeRouteHash`.
+Constraints:
+
+- **1–12 calls** (`EmptyRoute` / `TooManyCalls`)
+- `routeHash` must equal `keccak256(packedCalls)` (`InvalidRouteHash`)
+- `deadline` is compared to `block.timestamp` (`DeadlineExpired`)
+- Flash modes require non-zero `flashAmount` (`FlashLoanRequired`) and non-zero token addresses (`ZeroAddress`)
+
+Helpers: `buildPackedRoute`, `packExecutorCalls`, `computeRouteHash`.
+
+### Profit check
+
+`minProfit` is enforced against the profit-token balance delta:
+
+| Mode | When checked | Effective balance |
+|------|--------------|-------------------|
+| Balancer / Direct / DODO | After push-repay | Final balance already excludes the loan |
+| Aave V3 | Inside `executeOperation`, before approve | When `asset == profitToken`, `ASSERT_PROFIT_AAVE` subtracts `amount + premium` (Pool pulls after return). That post-pull effective balance is also used for the ABI `realizedProfit` return |
+
+Unprofitable routes revert with `InsufficientProfit(finalBalance, requiredBalance)`.
 
 ## Protocols
 
-Pool-based DEX callbacks verify the caller against an on-chain factory lookup before paying tokens. Protocol IDs are embedded in swap calldata by the bot.
+Pool swap callbacks verify `msg.sender` against an on-chain factory lookup. Protocol IDs are embedded in swap calldata by the bot.
 
 | ID | Category | Protocol | Callback |
 |----|----------|----------|----------|
@@ -54,62 +92,91 @@ Pool-based DEX callbacks verify the caller against an on-chain factory lookup be
 | 3 | Algebra | QuickSwap V3 | `algebraSwapCallback` |
 | 4 | Algebra | QuickSwap V4 | `algebraSwapCallback` |
 | — | V4 | Uniswap V4 | `unlockCallback` (via PoolManager) |
-| 7–9 | V2 | Uniswap V2, SushiSwap V2, QuickSwap V2 | `uniswapV2Call` |
-| — | DODO | DODO V2 (DVM/DPP/DSP) | `dvmFlashLoanCall` / `dppFlashLoanCall` / `dspFlashLoanCall` |
+| 7 | V2 | Uniswap V2 | `uniswapV2Call` |
+| 8 | V2 | SushiSwap V2 | `uniswapV2Call` |
+| 9 | V2 | QuickSwap V2 | `uniswapV2Call` |
+| — | DODO | DODO V2 DVM/DPP/DSP | `dvmFlashLoanCall` / `dppFlashLoanCall` / `dspFlashLoanCall` |
 
-**Arbitrary calls** — Curve, DODO V2, WooFi, Balancer `batchSwap`, and any other protocol are encoded as plain `target/value/data` steps in the route. The bot supplies full calldata (typically `approve` + `swap`). These have no dedicated callback handler.
+**Arbitrary calls** — Curve, WooFi, Balancer `batchSwap`, DODO swaps (as route steps), and anything else are plain `target/value/data` steps. No dedicated callback; the bot supplies full calldata (typically `approve` + `swap`).
 
-**Uniswap V4** — encoded as a route step calling `PoolManager.unlock(abi.encode(PoolKey, SwapParams))` (8 words: `currency0, currency1, fee, tickSpacing, hooks, zeroForOne, amountSpecified, sqrtPriceLimitX96`). The executor's `unlockCallback` forwards key+params to `swap()` and settles both deltas: debts via `sync → transfer → settle`, credits via `take`. ERC20 currencies only — native-currency (address(0)) debt fails safe with `CurrencyNotSettled`, reverting the route atomically. Multi-hop V4 = multiple `unlock` steps.
+**Uniswap V4** — route step calls `PoolManager.unlock` with `abi.encode(PoolKey, SwapParams)` (8 words: `currency0, currency1, fee, tickSpacing, hooks, zeroForOne, amountSpecified, sqrtPriceLimitX96`). `unlockCallback` runs `swap` and settles both deltas (`sync → transfer → settle` for debt, `take` for credit). ERC20 only — native (`address(0)`) debt fails closed via PoolManager `CurrencyNotSettled`. Multi-hop V4 = multiple `unlock` steps.
 
-V2/V3/Algebra callbacks pay via `transfer` (no standing approvals). Aave repayment auto-approves the pool inside `executeOperation`. DODO repayment transfers the flash-loan amount back to the pool inside the callback.
+V2/V3/Algebra callbacks pay via `transfer` (no standing approvals). Aave repayment auto-approves the Pool inside `executeOperation`. DODO repayment transfers the flash amount back to the pool inside the callback.
 
 ## Access Control
 
-- `executeArb`, `executeArbDirect`, `executeArbWithAave`, `executeArbWithDodo` — owner only
-- `approveIfNeeded`, `transferAll` — owner or contract itself (for in-route approvals)
-- `preApprove`, `approveAll`, `rescueToken`, `rescueNative`, `withdraw`, `transferOwnership` — owner only
-- `initialize` — callable once (guarded by slot 0 check); sets all storage slots
+| Surface | Who |
+|---------|-----|
+| `executeArb`, `executeArbDirect`, `executeArbWithAave`, `executeArbWithDodo` | Owner |
+| `approveIfNeeded`, `transferAll` | Owner **or** the contract itself (in-route) |
+| `preApprove`, `approveAll`, `rescueToken`, `rescueNative`, `withdraw`, `withdrawToken`, `transferOwnership` | Owner |
+| `initialize` | Once only (storage slot `0` must be zero); sets config slots |
 
-Set `OWNER` to the bot wallet at deploy time. `initialize()` must be called post-deploy for mainnet deployments that use the cast-based script (the Foundry script embeds args at deploy time).
+Views (no auth): `owner`, `balancerVault`, V3/V2/Algebra factories, `aavePool`, `poolManager`, etc.
 
-## Contracts
+Set `OWNER` to the bot wallet at deploy. Cast-based mainnet deploy creates bare runtime then calls `initialize`; the Foundry script embeds the 12 constructor args at CREATE time.
 
-| File | Description |
+## Storage Layout
+
+| Slot | Contents |
+|------|----------|
+| `0x00` | Owner |
+| `0x06` | Permanent reentrancy guard (`1` unlocked, `2` locked) — rescue paths |
+| `0x07` | Balancer Vault |
+| `0x08`–`0x0b` | Uni V3, Sushi V3, Quick V3 (Algebra), Ramses V3 factories |
+| `0x0c` | Aave V3 Pool |
+| `0x0d` | Uniswap V4 PoolManager |
+| `0x0e`–`0x10` | Uni V2, Sushi V2, Quick V2 factories |
+| `0x11` | QuickSwap V4 factory (may be a non-zero sentinel) |
+
+Constructor / `initialize` take the same **12** addresses (owner + 11 protocol addresses), all non-zero. DODO pool/token context uses **transient** slots during execution only (not persistent storage).
+
+## Layout
+
+| Path | Description |
 |------|-------------|
-| `src/ArbExecutor.huff` | Canonical implementation — swap logic, callbacks, flash-loan handlers, auth, dispatch |
-| `src/ArbExecutor.sol` | Abstract interface, errors, `ArbExecutorCodec` helpers, and external interface types (Balancer Vault, Aave V3) |
-| `test/HuffDeployer.sol` | Compiles Huff via `ffi` + `huffc`; deploys constructor bytecode and `vm.etch`es runtime |
-| `test/ArbExecutorAtomic.t.sol` | Local tests with mock tokens, mock vaults, and route execution scenarios |
-| `test/ArbExecutorAaveFork.t.sol` | Fork tests against live Polygon Aave V3 Pool |
-| `test/HashDebug.t.sol` | Standalone route-hash debug utility (dev only) |
-| `script/Deploy.s.sol` | Foundry broadcast deploy (constructor args embedded at deploy) |
-| `script/deploy_mainnet.sh` | Mainnet deploy via `cast` (runtime CREATE + post-deploy `initialize`) |
-
-Deploy-time storage (slots 0–17): owner (0), reentrancy lock (6), Balancer Vault (7), V3 factories (8–11), Aave Pool (12), Uniswap V4 PoolManager (13), V2 factories (14–16), QuickSwap V4 factory (17). Constructor and `initialize` both take the same 12 addresses and reject zeros. (Legacy slots 17–21 for removed V2 protocols — ComethSwap/MeshSwap era — are gone; DODO pool/token context lives in transient storage during execution only.)
+| `src/ArbExecutor.huff` | Implementation |
+| `src/ArbExecutor.sol` | Interface, errors, codec |
+| `test/HuffDeployer.sol` | Huff compile + deploy helpers |
+| `test/ArbExecutorAtomic.t.sol` | Local mocks: routes, Aave premium profit, Vault reentrancy |
+| `test/ArbExecutorAuth.t.sol` | Owner / non-owner auth |
+| `test/ArbExecutorPrint.t.sol` | Deploy + `initialize` smoke |
+| `test/ArbExecutorV4.t.sol` | Uniswap V4 unlock/settle (mocked PoolManager) |
+| `test/ArbExecutorAaveFork.t.sol` | Forked Polygon Aave V3 surface checks |
+| `test/ArbExecutorDebug.t.sol` | Forked debug harness |
+| `test/HashDebug.t.sol` | Route-hash utility (dev) |
+| `script/Deploy.s.sol` | Foundry broadcast deploy (constructor args) |
+| `script/deploy_mainnet.sh` | Cast deploy: runtime CREATE + `initialize` |
 
 ## Setup
 
-Requires [Foundry](https://book.getfoundry.sh/), `huffc` (`cargo install huffc`), and `ffi` enabled (already set in `foundry.toml`).
+Requires [Foundry](https://book.getfoundry.sh/), `huffc` (`cargo install huffc`), and `ffi` (enabled in `foundry.toml`).
 
 ```bash
 git submodule update --init --recursive
-cp .env.example .env   # then edit OWNER, PRIVATE_KEY, POLYGON_RPC_URL
+cp .env.example .env   # OWNER, PRIVATE_KEY, POLYGON_RPC_URL
 ```
 
 ## Commands
 
 ```bash
-# Build
+# Build (Solidity artifacts; Huff is compiled via huffc/ffi at deploy/test time)
 forge build
 
-# Unit tests (mocks, no RPC)
-forge test --match-contract "AuthTest|AtomicTest|PrintTest" -vvv
+# Unit tests (no RPC)
+forge test --match-contract "AuthTest|AtomicTest|PrintTest|V4Test" -vvv
 
-# Fork tests (requires POLYGON_RPC_URL, falls back to polygon-bor-rpc.publicnode.com)
+# Fork tests (POLYGON_RPC_URL; default https://polygon-bor-rpc.publicnode.com)
 forge test --match-contract "AaveFork|Debug" -vvv
 
-# Deploy (cast — runtime CREATE + separate initialize call)
-OWNER=<0x...> PRIVATE_KEY=<key> ./script/deploy_mainnet.sh
+# Deploy — cast (runtime CREATE + initialize)
+OWNER=0x... PRIVATE_KEY=0x... ./script/deploy_mainnet.sh
+
+# Deploy — Foundry script (constructor-embedded config)
+# Requires OWNER; uses PRIVATE_KEY / --private-key for broadcast
+forge script script/Deploy.s.sol:DeployScript \
+  --rpc-url "${POLYGON_RPC_URL:-https://polygon-bor-rpc.publicnode.com}" \
+  --broadcast --private-key "$PRIVATE_KEY"
 ```
 
-Test suites: `ArbExecutorAuth`, `ArbExecutorAtomic`, `ArbExecutorPrint` (local); `ArbExecutorAaveFork`, `ArbExecutorDebug` (forked).
+Polygon protocol addresses used by both deploy paths are hardcoded in `script/Deploy.s.sol` and `script/deploy_mainnet.sh` (Balancer Vault, factories, Aave Pool, V4 PoolManager).
