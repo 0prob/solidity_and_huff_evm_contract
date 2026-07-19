@@ -158,8 +158,9 @@ transfer_all_auth_ok:
     pop pop
     stop
 transfer_all_zero:
-    pop pop pop
-    stop
+    // Fail closed: silent success on zero balance masked funding misses as
+    // UniV2 INSUFFICIENT_INPUT_AMOUNT on the following swap.
+    0x00 0x00 revert
 transfer_all_balance_failed:
     0x00 0x00 revert
 }
@@ -313,8 +314,8 @@ execute_calls_loop:
     execute_calls_loop jump
 execute_call_failed:
     0x0f43457300000000000000000000000000000000000000000000000000000000 0x00 mstore
-    dup6 0x04 mstore
-    dup4 0x24 mstore
+    dup4 0x04 mstore
+    dup3 0x24 mstore
     0x60 0x44 mstore
     returndatasize 0x64 mstore
     returndatasize 0x00 0x84 returndatacopy
@@ -423,8 +424,8 @@ profit_done:
     dup1 0x80 mstore
     0x07 sload 0xa0 mstore
 
-    dup6 0x60 add calldataload
-    dup5
+    0xa4 calldataload                                  // minProfit (topic3) — match executeArbDirect
+    dup5                                               // profitToken (topic2)
     caller
     0x2790eac69d46d24bb29b55a23b12e2e49076dc2a9fdcb340e641de33fca2c5dd
     0x40 0x80
@@ -498,8 +499,11 @@ route_hash_ok:
     0x00 0x00 tstore
     ASSERT_PROFIT()
 
-    0x07 tload                                         // finalBalance from ASSERT_PROFIT
+    // Stack order must match AAVE/DODO: [starting, final] so LT is final<starting
+    // (loss→return 0) and SUB is final-starting. Prior order inverted the branch so
+    // every profitable Direct route ABI-returned 0 (confirm_zero_return).
     0x04 tload                                         // startingBalance
+    0x07 tload                                         // finalBalance from ASSERT_PROFIT
     dup2 dup2 lt iszero direct_profit_calc jumpi
     0x00
     direct_profit_done jump
@@ -613,8 +617,8 @@ profit_done:
     dup1 0x80 mstore
     0x0c sload 0xa0 mstore
 
-    dup6 0xa0 add calldataload
-    dup5
+    0xa4 calldataload                                  // minProfit (topic3)
+    dup5                                               // profitToken (topic2)
     caller
     0xcf310e875090b29d50540b311226f96c6d78f2cdd5265f1481c9772c59620f4e
     0x40 0x80
@@ -706,6 +710,7 @@ phase_idle_after_ok:
 profit_calc:
     dup2 dup2 sub
 profit_done:
+    0x05 tload 0xa0 mstore                             // DODO pool (event data word2) — before clearing slot 5
     0x00 0x00 tstore
     0x00 0x01 tstore
     0x00 0x02 tstore
@@ -714,9 +719,8 @@ profit_done:
     0x00 0x05 tstore
     0x00 0x06 tstore
     dup1 0x80 mstore
-    0x05 tload 0xa0 mstore
-    dup6 0xa0 add calldataload
-    dup5
+    0xa4 calldataload                                  // minProfit (topic3)
+    dup5                                               // profitToken (topic2)
     caller
     0xc19e0a4f4949ec90b1660f81a45b68e36d403a36b215ee186ee5edf8c73f2ed
     0x40 0x80
@@ -924,17 +928,19 @@ is_quick_v3:
     0x0a sload
     algebra_call jump
 is_quick_v4:
-    0x16 sload
+    0x11 sload
     algebra_call jump
 is_ramses:
     0x0b sload
     0x28af8d0b00000000000000000000000000000000000000000000000000000000 0x00 mstore
-    dup3 0x04 mstore
-    dup4 0x24 mstore
+    // RESOLVE args after factory sload: [FAC, proto, tokB, tokA, fee]
+    // Factories index getPool(token0,token1,fee) with token0 < token1 (tokA/tokB from calldata).
+    dup4 0x04 mstore
+    dup3 0x24 mstore
     dup5 0x44 mstore
     0x20 0x00 0x64 0x00 dup5 gas staticcall
     iszero resolve_failed jumpi
-    returndatasize 0x20 lt resolve_failed jumpi
+    0x20 returndatasize lt resolve_failed jumpi
     0x00 mload
     swap5 pop pop pop pop pop
     resolve_end jump
@@ -949,32 +955,35 @@ is_quick_v2:
     v2_call jump
 uni_sushi_call:
     0x1698ee8200000000000000000000000000000000000000000000000000000000 0x00 mstore
-    dup3 0x04 mstore
-    dup4 0x24 mstore
+    // stack: [FAC, proto, tokB, tokA, fee] — pass (tokA, tokB, fee) not (tokB, tokA, fee)
+    dup4 0x04 mstore
+    dup3 0x24 mstore
     dup5 0x44 mstore
     0x20 0x00 0x64 0x00 dup5 gas staticcall
     iszero resolve_failed jumpi
-    returndatasize 0x20 lt resolve_failed jumpi
+    0x20 returndatasize lt resolve_failed jumpi
     0x00 mload
     swap5 pop pop pop pop pop
     resolve_end jump
 algebra_call:
     0xd9a641e100000000000000000000000000000000000000000000000000000000 0x00 mstore
-    dup2 0x04 mstore
+    // stack: [FAC, proto, tokB, tokA, fee] — poolByPair(tokA, tokB)
+    dup4 0x04 mstore
     dup3 0x24 mstore
     0x20 0x00 0x44 0x00 dup5 gas staticcall
     iszero resolve_failed jumpi
-    returndatasize 0x20 lt resolve_failed jumpi
+    0x20 returndatasize lt resolve_failed jumpi
     0x00 mload
     swap4 pop pop pop pop
     resolve_end jump
 v2_call:
     0xe6a4390500000000000000000000000000000000000000000000000000000000 0x00 mstore
-    dup2 0x04 mstore
+    // stack: [FAC, proto, tokB, tokA, fee] — getPair(tokA, tokB); V2 mirrors both dirs but keep canonical
+    dup4 0x04 mstore
     dup3 0x24 mstore
     0x20 0x00 0x44 0x00 dup5 gas staticcall
     iszero resolve_failed jumpi
-    returndatasize 0x20 lt resolve_failed jumpi
+    0x20 returndatasize lt resolve_failed jumpi
     0x00 mload
     swap4 pop pop pop pop
     resolve_end jump
@@ -1012,7 +1021,8 @@ proto_ok:
     RESOLVE_EXPECTED_POOL()
     caller dup2 eq caller_ok jumpi
     0xf206255900000000000000000000000000000000000000000000000000000000 0x00 mstore
-    swap1 0x04 mstore
+    // stack: [POOL, fee, ...] — do not swap1 (that stored fee as "expected")
+    0x04 mstore
     caller 0x24 mstore
     0x44 0x00 revert
 caller_ok:
@@ -1036,6 +1046,12 @@ token1_done:
 }
 
 #define macro UNLOCK_CALLBACK() = takes (0) returns (0) {
+    // Uniswap V4: PoolManager.unlock(data) calls back here. data is
+    // abi.encode(PoolKey, SwapParams) — 8 words:
+    //   [currency0, currency1, fee, tickSpacing, hooks, zeroForOne, amountSpecified, sqrtPriceLimit]
+    // Forwarded verbatim to swap(); settlement currencies read from the same words.
+    // ERC20 currencies only — native (address(0)) debt fails safe: transfer no-ops,
+    // settle() credits 0, PM reverts CurrencyNotSettled, route unwinds atomically.
     caller 0x0d sload eq unlock_sender_ok jumpi
     0xc21d53e8 0x00 mstore
     0x04 0x1c revert
@@ -1044,70 +1060,81 @@ unlock_sender_ok:
     0xadd4adc0 0x00 mstore
     0x04 0x1c revert
 unlock_phase_ok:
-    0x04 calldataload 0x04 add 0x20 add
-    dup1 0x1c0 mstore
+    0x04 calldataload 0x04 add 0x20 add            // [dp] = start of data payload
 
+    // swap(key, params, "") — selector @0x80, args @0x84, argsSize 0x144
     0xf3cd914c00000000000000000000000000000000000000000000000000000000 0x80 mstore
-    0x84 dup1 0x100 add 0xa0 calldatacopy
-    0x124 dup1 0x160 add 0x60 calldatacopy
-    0x120 0x184 mstore
-    0x00 0x1a4 mstore
-    0x20 0x80 0x144 0x80 0x00 0x0d sload gas call
-    iszero swap_call_failed jumpi
-    returndatasize 0x20 lt swap_call_failed jumpi
+    0x100 dup2 0x84 calldatacopy                   // key (5 words) + params (3 words) from data
+    0x120 0x184 mstore                             // hookData offset (9 head words)
+    0x00 0x1a4 mstore                              // hookData length = 0
+    0x20 0x00 0x144 0x80 0x00 0x0d sload gas call  // BalanceDelta → mem[0x00]
+    iszero v4_pm_call_failed jumpi
+    0x20 returndatasize lt v4_pm_call_failed jumpi
+    0x00 mload                                     // [delta, dp]
 
-    0x80 mload
-    dup1 0x80 sar
-    dup1 iszero delta0_done jumpi
-    dup1 0x00 slt delta0_owe jumpi
-    0x1c0 mload 0x100 add calldataload
-    swap2
+    // currency0: delta0 = upper 128 bits (signed). positive → take, negative → pay
+    dup1 0x80 sar                                  // [a0, delta, dp]
+    dup1 iszero d0_zero jumpi
+    dup1 0x00 slt d0_take jumpi
+    // owe |a0|: sync(c0) → transfer(PM, owe) → settle()
+    0x00 sub                                       // [owe0, delta, dp]
+    0xa584119400000000000000000000000000000000000000000000000000000000 0x00 mstore
+    dup3 calldataload 0x04 mstore                  // currency0
+    0x00 0x00 0x24 0x00 0x00 0x0d sload gas call
+    iszero v4_pm_call_failed jumpi
+    dup3 calldataload 0x0d sload dup3              // [owe0, PM, c0, owe0, delta, dp]
+    SAFE_TRANSFER()                                // [owe0, delta, dp]
+    0x11da60b400000000000000000000000000000000000000000000000000000000 0x00 mstore
+    0x00 0x00 0x04 0x00 0x00 0x0d sload gas call
+    iszero v4_pm_call_failed jumpi
+    pop
+    d0_done jump
+d0_take:
+    // take(c0, address(this), a0)                 // [a0, delta, dp]
     0x0b0d9c0900000000000000000000000000000000000000000000000000000000 0x00 mstore
-    swap1 0x04 mstore
+    dup3 calldataload 0x04 mstore
     address 0x24 mstore
-    swap1 0x44 mstore
-    0x00 0x00 0x64 0x00 0x00 0x0d sload gas call pop
+    dup1 0x44 mstore
+    0x00 0x00 0x64 0x00 0x00 0x0d sload gas call
+    iszero v4_pm_call_failed jumpi
+d0_zero:
+    pop                                            // [delta, dp]
+d0_done:
+
+    // currency1: delta1 = lower 128 bits (signed)
+    dup1 0x0f signextend                           // [a1, delta, dp]
+    dup1 iszero d1_zero jumpi
+    dup1 0x00 slt d1_take jumpi
+    0x00 sub                                       // [owe1, delta, dp]
+    0xa584119400000000000000000000000000000000000000000000000000000000 0x00 mstore
+    dup3 0x20 add calldataload 0x04 mstore         // currency1
+    0x00 0x00 0x24 0x00 0x00 0x0d sload gas call
+    iszero v4_pm_call_failed jumpi
+    dup3 0x20 add calldataload 0x0d sload dup3     // [owe1, PM, c1, owe1, delta, dp]
+    SAFE_TRANSFER()                                // [owe1, delta, dp]
+    0x11da60b400000000000000000000000000000000000000000000000000000000 0x00 mstore
+    0x00 0x00 0x04 0x00 0x00 0x0d sload gas call
+    iszero v4_pm_call_failed jumpi
+    pop
+    d1_done jump
+d1_take:
+    0x0b0d9c0900000000000000000000000000000000000000000000000000000000 0x00 mstore
+    dup3 0x20 add calldataload 0x04 mstore
+    address 0x24 mstore
+    dup1 0x44 mstore
+    0x00 0x00 0x64 0x00 0x00 0x0d sload gas call
+    iszero v4_pm_call_failed jumpi
+d1_zero:
+    pop                                            // [delta, dp]
+d1_done:
     pop pop
-    delta0_done jump
-delta0_owe:
-    0x00 swap1 sub
-    0x1c0 mload 0x100 add calldataload
-    swap1
-    0xa584119400000000000000000000000000000000000000000000000000000000 0x00 mstore
-    swap1 0x04 mstore
-    0x00 0x00 0x24 0x00 0x00 0x0d sload gas call pop
-    0x0d sload swap2 SAFE_TRANSFER()
-    pop
-delta0_done:
-
-    0x80 mload 0x0f signextend
-    dup1 iszero delta1_done jumpi
-    dup1 0x00 slt delta1_owe jumpi
-    0x1c0 mload 0x120 add calldataload
-    swap2
-    0x0b0d9c0900000000000000000000000000000000000000000000000000000000 0x00 mstore
-    swap1 0x04 mstore
-    address 0x24 mstore
-    swap1 0x44 mstore
-    0x00 0x00 0x64 0x00 0x00 0x0d sload gas call pop
-    pop
-    unlock_return jump
-delta1_owe:
-    0x00 swap1 sub
-    0x1c0 mload 0x120 add calldataload
-    swap1
-    0xa584119400000000000000000000000000000000000000000000000000000000 0x00 mstore
-    swap1 0x04 mstore
-    0x00 0x00 0x24 0x00 0x00 0x0d sload gas call pop
-    0x0d sload swap2 SAFE_TRANSFER()
-    pop
-delta1_done:
-unlock_return:
+    // return abi-encoded empty bytes
     0x20 0x00 mstore
     0x00 0x20 mstore
     0x40 0x00 return
-swap_call_failed:
-    0x00 0x00 revert
+v4_pm_call_failed:
+    returndatasize 0x00 0x00 returndatacopy
+    returndatasize 0x00 revert
 }
 
 #define macro UNISWAP_V2_CALLBACK() = takes (0) returns (0) {
@@ -1124,7 +1151,7 @@ v2_phase_ok:
     RESOLVE_EXPECTED_POOL()
     caller dup2 eq v2_caller_ok jumpi
     0xf206255900000000000000000000000000000000000000000000000000000000 0x00 mstore
-    swap1 0x04 mstore
+    0x04 mstore
     caller 0x24 mstore
     0x44 0x00 revert
 v2_caller_ok:
@@ -1168,7 +1195,7 @@ proto_ok:
     RESOLVE_EXPECTED_POOL()
     caller dup2 eq caller_ok jumpi
     0xf206255900000000000000000000000000000000000000000000000000000000 0x00 mstore
-    swap1 0x04 mstore
+    0x04 mstore
     caller 0x24 mstore
     0x44 0x00 revert
 caller_ok:
@@ -1192,6 +1219,7 @@ token1_done:
 }
 
 #define macro INITIALIZE() = takes (0) returns (0) {
+    // initialize(address x12) — same order/slots as CONSTRUCTOR args.
     0x00 sload iszero init_ok jumpi
     0x82b42900 0x00 mstore
     0x04 0x1c revert
@@ -1208,11 +1236,6 @@ init_ok:
     0x124 calldataload iszero is_zero_revert jumpi
     0x144 calldataload iszero is_zero_revert jumpi
     0x164 calldataload iszero is_zero_revert jumpi
-    0x184 calldataload iszero is_zero_revert jumpi
-    0x1a4 calldataload iszero is_zero_revert jumpi
-    0x1c4 calldataload iszero is_zero_revert jumpi
-    0x1e4 calldataload iszero is_zero_revert jumpi
-    0x204 calldataload iszero is_zero_revert jumpi
 
     0x04 calldataload 0x00 sstore
     0x24 calldataload 0x07 sstore
@@ -1226,20 +1249,18 @@ init_ok:
     0x124 calldataload 0x0f sstore
     0x144 calldataload 0x10 sstore
     0x164 calldataload 0x11 sstore
-    0x184 calldataload 0x12 sstore
-    0x1a4 calldataload 0x13 sstore
-    0x1c4 calldataload 0x14 sstore
-    0x1e4 calldataload 0x15 sstore
-    0x204 calldataload 0x16 sstore
 
     0x01 0x06 sstore
     stop
 }
 
 #define macro CONSTRUCTOR() = takes (0) returns (0) {
-    // Args sit at fixed offset after CONSTRUCTOR header (see deploy init layout).
-    0x220
-    0x148
+    // Args: 12 words at fixed offset after CONSTRUCTOR header (see deploy init layout).
+    // owner, balancerVault, uniV3, sushiV3, quickV3, ramses, aavePool, poolManager,
+    // uniV2, sushiV2, quickV2, quickV4 → slots 0x00, 0x07..0x11.
+    // Both size literals below are written 2-byte-wide to pin PUSH2 (size fixpoint).
+    0x0180
+    0x00ea
     0x00
     codecopy
 
@@ -1255,11 +1276,6 @@ init_ok:
     0x120 mload iszero is_zero_revert jumpi
     0x140 mload iszero is_zero_revert jumpi
     0x160 mload iszero is_zero_revert jumpi
-    0x180 mload iszero is_zero_revert jumpi
-    0x1a0 mload iszero is_zero_revert jumpi
-    0x1c0 mload iszero is_zero_revert jumpi
-    0x1e0 mload iszero is_zero_revert jumpi
-    0x200 mload iszero is_zero_revert jumpi
 
     0x00 mload 0x00 sstore
     0x20 mload 0x07 sstore
@@ -1273,11 +1289,6 @@ init_ok:
     0x120 mload 0x0f sstore
     0x140 mload 0x10 sstore
     0x160 mload 0x11 sstore
-    0x180 mload 0x12 sstore
-    0x1a0 mload 0x13 sstore
-    0x1c0 mload 0x14 sstore
-    0x1e0 mload 0x15 sstore
-    0x200 mload 0x16 sstore
 
     0x01 0x06 sstore
 
@@ -1286,15 +1297,16 @@ is_zero_revert:
     0xd92e233d00000000000000000000000000000000000000000000000000000000 0x00 mstore
     0x04 0x00 revert
 constructor_end:
-    // Init layout: [CONSTRUCTOR][args (0x220)][MAIN]. Return runtime for on-chain CREATE.
+    // Init layout: [CONSTRUCTOR (0xea)][args (0x180)][MAIN @ 0x26a]. Return runtime.
+    // SUB pops minuend from the top: push the offset first → codesize-0x26a.
+    0x026a
     codesize
-    0x368
     sub
-    0x368
+    0x026a
     0x00
     codecopy
+    0x026a
     codesize
-    0x368
     sub
     0x00
     return
@@ -1315,11 +1327,6 @@ constructor_end:
     0x0f sload dup1 iszero approve_all_s0f jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s0f: pop
     0x10 sload dup1 iszero approve_all_s10 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s10: pop
     0x11 sload dup1 iszero approve_all_s11 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s11: pop
-    0x12 sload dup1 iszero approve_all_s12 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s12: pop
-    0x13 sload dup1 iszero approve_all_s13 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s13: pop
-    0x14 sload dup1 iszero approve_all_s14 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s14: pop
-    0x15 sload dup1 iszero approve_all_s15 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s15: pop
-    0x16 sload dup1 iszero approve_all_s16 jumpi 0x00 mload dup1 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SAFE_APPROVE_MAX_IF_NEEDED() approve_all_s16: pop
     stop
 }
 
@@ -1344,7 +1351,7 @@ constructor_end:
     dup1 0xd5b99797 eq dsp_flash_loan_callback_dest jumpi
     dup1 0xfad6b994 eq approve_if_needed_dest jumpi
     dup1 0x8da5cb5b eq owner_dest jumpi
-    dup1 0xa1e20834 eq initialize_dest jumpi
+    dup1 0x0b800f48 eq initialize_dest jumpi
     dup1 0xf2fde38b eq transfer_ownership_dest jumpi
     dup1 0xb4656158 eq pre_approve_dest jumpi
     dup1 0x4b14e003 eq transfer_all_dest jumpi
@@ -1441,7 +1448,7 @@ sushi_v2_factory_dest:
 quickswap_v2_factory_dest:
     GET_SLOT(0x10)
 quickswap_v4_factory_dest:
-    GET_SLOT(0x16)
+    GET_SLOT(0x11)
 uniswap_v2_callback_dest:
     UNISWAP_V2_CALLBACK()
 }

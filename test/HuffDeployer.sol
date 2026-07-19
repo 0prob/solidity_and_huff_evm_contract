@@ -28,7 +28,9 @@ library HuffDeployer {
     }
 
     function deploy_with_args(string memory fileName, bytes memory args) internal returns (address) {
-        bytes memory initCode = abi.encodePacked(bytecode(), args);
+        // CREATE layout must be [CONSTRUCTOR][args 0x220][MAIN]. Without MAIN, constructor
+        // returns empty runtime (storage-only contract). `vm.etch` covers forge tests only.
+        bytes memory initCode = abi.encodePacked(bytecode(), args, runtimeBytecode());
         address deployed;
         assembly ("memory-safe") {
             deployed := create(0, add(initCode, 0x20), mload(initCode))
@@ -81,11 +83,12 @@ library HuffDeployer {
         return abi.encode(a0, a1, a2, a3, a4, a5, a6, a7);
     }
 
-    function encode2(address a0, address a1, address a2, address a3, address a4, address a5, address a6, address a7, address a8)
+    /// @dev uniV2, sushiV2, quickV2, quickV4 → slots 0x0e, 0x0f, 0x10, 0x11
+    function encode2(address a0, address a1, address a2, address a3)
         internal
         pure
         returns (bytes memory)
     {
-        return abi.encode(a0, a1, a2, a3, a4, a5, a6, a7, a8);
+        return abi.encode(a0, a1, a2, a3);
     }
 }

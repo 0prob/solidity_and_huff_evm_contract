@@ -59,6 +59,8 @@ Pool-based DEX callbacks verify the caller against an on-chain factory lookup be
 
 **Arbitrary calls** — Curve, DODO V2, WooFi, Balancer `batchSwap`, and any other protocol are encoded as plain `target/value/data` steps in the route. The bot supplies full calldata (typically `approve` + `swap`). These have no dedicated callback handler.
 
+**Uniswap V4** — encoded as a route step calling `PoolManager.unlock(abi.encode(PoolKey, SwapParams))` (8 words: `currency0, currency1, fee, tickSpacing, hooks, zeroForOne, amountSpecified, sqrtPriceLimitX96`). The executor's `unlockCallback` forwards key+params to `swap()` and settles both deltas: debts via `sync → transfer → settle`, credits via `take`. ERC20 currencies only — native-currency (address(0)) debt fails safe with `CurrencyNotSettled`, reverting the route atomically. Multi-hop V4 = multiple `unlock` steps.
+
 V2/V3/Algebra callbacks pay via `transfer` (no standing approvals). Aave repayment auto-approves the pool inside `executeOperation`. DODO repayment transfers the flash-loan amount back to the pool inside the callback.
 
 ## Access Control
@@ -83,7 +85,7 @@ Set `OWNER` to the bot wallet at deploy time. `initialize()` must be called post
 | `script/Deploy.s.sol` | Foundry broadcast deploy (constructor args embedded at deploy) |
 | `script/deploy_mainnet.sh` | Mainnet deploy via `cast` (runtime CREATE + post-deploy `initialize`) |
 
-Deploy-time storage (slots 0–22): owner, Balancer Vault, V3/V2 factory addresses, Aave Pool, Uniswap V4 PoolManager, QuickSwap V4 factory placeholder, DODO pools.
+Deploy-time storage (slots 0–17): owner (0), reentrancy lock (6), Balancer Vault (7), V3 factories (8–11), Aave Pool (12), Uniswap V4 PoolManager (13), V2 factories (14–16), QuickSwap V4 factory (17). Constructor and `initialize` both take the same 12 addresses and reject zeros. (Legacy slots 17–21 for removed V2 protocols — ComethSwap/MeshSwap era — are gone; DODO pool/token context lives in transient storage during execution only.)
 
 ## Setup
 

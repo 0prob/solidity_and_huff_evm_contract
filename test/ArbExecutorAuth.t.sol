@@ -17,8 +17,7 @@ contract ArbExecutorAuthTest is Test {
                 address(0x1003), address(0x1004), address(0x1005), address(0x1006)
             );
         bytes memory args2 = HuffDeployer.encode2(
-                address(0x1007), address(0x1008), address(0x1009), address(0x100a),
-                address(0x100b), address(0x100c), address(0x100d), address(0x100e), address(0x100f)
+                address(0x1007), address(0x1008), address(0x1009), address(0x100a)
             );
         address addr = HuffDeployer.deploy_with_args_as("ArbExecutor", bytes.concat(args1, args2), owner);
         require(addr != address(0), "deploy failed");

@@ -121,6 +121,12 @@ contract RecorderTarget {
     }
 }
 
+contract MintToCallerTarget {
+    function mintToCaller(MockToken token, uint256 amount) external {
+        token.mint(msg.sender, amount);
+    }
+}
+
 contract RevertingTarget {
     function fail() external pure {
         revert("route call failed");
@@ -139,8 +145,7 @@ contract ArbExecutorAtomicTest {
                 address(0x1005), address(0x1006)
             );
         bytes memory args2 = HuffDeployer.encode2(
-                address(0x1007), address(0x1008), address(0x1009), address(0x100a),
-                address(0x100b), address(0x100c), address(0x100d), address(0x100e), address(0x100f)
+                address(0x1007), address(0x1008), address(0x1009), address(0x100a)
             );
         address addr = HuffDeployer.deploy_with_args("ArbExecutor", bytes.concat(args1, args2));
         require(addr != address(0), "deploy failed");
@@ -200,8 +205,7 @@ contract ArbExecutorAtomicTest {
                 aavePool, address(0x1006)
             );
         bytes memory args2 = HuffDeployer.encode2(
-                address(0x1007), address(0x1008), address(0x1009), address(0x100a),
-                address(0x100b), address(0x100c), address(0x100d), address(0x100e), address(0x100f)
+                address(0x1007), address(0x1008), address(0x1009), address(0x100a)
             );
         address addr = HuffDeployer.deploy_with_args("ArbExecutor", bytes.concat(args1, args2));
         require(addr != address(0), "deploy failed");
@@ -243,6 +247,26 @@ contract ArbExecutorAtomicTest {
         require(token.balances(address(executor)) == 0, "executor flash-token balance must roll back");
     }
 
+    function testRouteCallFailureReportsFailingCall() public {
+        token = new MockToken();
+        recorder = new RecorderTarget();
+        reverter = new RevertingTarget();
+        ArbExecutor executor = _deployExecutor(address(new CallbackVault()));
+        ArbExecutor.Call[] memory calls = _baseCalls(2);
+
+        (bool ok, bytes memory data) = _callExecute(executor, calls);
+
+        require(!ok, "route call must fail");
+        require(bytes4(data) == ArbExecutor.ExternalCallFailed.selector, "wrong error selector");
+        bytes memory payload = new bytes(data.length - 4);
+        for (uint256 i; i < payload.length; ++i) {
+            payload[i] = data[i + 4];
+        }
+        (uint256 index, address target,) = abi.decode(payload, (uint256, address, bytes));
+        require(index == 1, "wrong failing call index");
+        require(target == address(reverter), "wrong failing call target");
+    }
+
     function testExecuteArbDirectRunsBatchSwapCallWithoutFlashLoan() public {
         token = new MockToken();
         recorder = new RecorderTarget();
@@ -273,6 +297,31 @@ contract ArbExecutorAtomicTest {
 
         require(ok, string(data));
         require(batchTarget.hits() == 1, "batchSwap route call should execute once");
+    }
+
+    function testExecuteArbDirectReturnsRealizedProfit() public {
+        token = new MockToken();
+        MintToCallerTarget minter = new MintToCallerTarget();
+        ArbExecutor executor = _deployExecutor(address(new CallbackVault()));
+
+        uint256 profit = 42;
+        ArbExecutor.Call[] memory calls = new ArbExecutor.Call[](1);
+        calls[0] = ArbExecutor.Call({
+            target: address(minter),
+            value: 0,
+            data: abi.encodeWithSelector(MintToCallerTarget.mintToCaller.selector, address(token), profit)
+        });
+
+        (bytes memory packedRoute,) = ArbExecutorCodec.buildPackedRoute(
+            address(token), 0, address(token), 1, block.timestamp + 1 days, _toCodecCalls(calls)
+        );
+        (bool ok, bytes memory data) =
+            address(executor).call(abi.encodeWithSelector(ArbExecutor.executeArbDirect.selector, packedRoute));
+
+        require(ok, string(data));
+        require(data.length == 32, "executeArbDirect should return one ABI word");
+        require(abi.decode(data, (uint256)) == profit, "direct must return final-starting profit");
+        require(token.balances(address(executor)) == profit, "profit should remain on executor");
     }
 
     function testFlashLoanCallbackRejectsBalancerVaultRouteCalls() public {

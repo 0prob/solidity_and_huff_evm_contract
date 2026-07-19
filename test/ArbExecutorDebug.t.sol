@@ -33,8 +33,7 @@ contract ArbExecutorDebug is Test {
                 QUICKSWAP_V3_FACTORY, RAMSES_V3_FACTORY, AAVE_POOL, POOL_MANAGER
             );
         bytes memory args2 = HuffDeployer.encode2(
-                UNISWAP_V2_FACTORY, SUSHISWAP_V2_FACTORY, QUICKSWAP_V2_FACTORY, address(0),
-                address(0), address(0), address(0), address(0), QUICKSWAP_V4_FACTORY
+                UNISWAP_V2_FACTORY, SUSHISWAP_V2_FACTORY, QUICKSWAP_V2_FACTORY, QUICKSWAP_V4_FACTORY
             );
         address addr = HuffDeployer.deploy_with_args_as("ArbExecutor", bytes.concat(args1, args2), OWNER);
         require(addr != address(0), "deploy failed");
