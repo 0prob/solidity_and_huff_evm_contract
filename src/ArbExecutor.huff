@@ -1070,14 +1070,16 @@ proto_ok:
 caller_ok:
     pop
     0x04 calldataload
-    dup1 0x00 gt send_token0 jumpi
+    // amount0Delta > 0 (signed) → pay token0.
+    // Was `dup1 0x00 gt` (always false → IIA), then unsigned `gt` (neg deltas → TransferFailed MAX).
+    0x00 dup2 sgt send_token0 jumpi
     pop
     token0_done jump
 send_token0:
     caller dup5 swap2 SAFE_TRANSFER()
 token0_done:
     0x24 calldataload
-    dup1 0x00 gt send_token1 jumpi
+    0x00 dup2 sgt send_token1 jumpi
     pop
     token1_done jump
 send_token1:
@@ -1199,14 +1201,15 @@ v2_phase_ok:
 v2_caller_ok:
     pop
     0x24 calldataload
-    dup1 0x00 gt v2_send_token0 jumpi
+    // amount0 > 0 → pay (V2 amounts are unsigned). Was always-false `dup1 0x00 gt`.
+    0x00 dup2 gt v2_send_token0 jumpi
     pop
     v2_token0_done jump
 v2_send_token0:
     caller dup5 swap2 SAFE_TRANSFER()
 v2_token0_done:
     0x44 calldataload
-    dup1 0x00 gt v2_send_token1 jumpi
+    0x00 dup2 gt v2_send_token1 jumpi
     pop
     v2_token1_done jump
 v2_send_token1:
@@ -1243,14 +1246,15 @@ proto_ok:
 caller_ok:
     pop
     0x04 calldataload
-    dup1 0x00 gt send_token0 jumpi
+    // amount > 0 (signed) → pay. Unsigned gt treated receive-side neg deltas as uint MAX.
+    0x00 dup2 sgt send_token0 jumpi
     pop
     token0_done jump
 send_token0:
     caller dup5 swap2 SAFE_TRANSFER()
 token0_done:
     0x24 calldataload
-    dup1 0x00 gt send_token1 jumpi
+    0x00 dup2 sgt send_token1 jumpi
     pop
     token1_done jump
 send_token1:
