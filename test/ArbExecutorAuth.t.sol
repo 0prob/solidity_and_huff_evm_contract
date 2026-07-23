@@ -14,7 +14,7 @@ contract ArbExecutorAuthTest is Test {
     function setUp() public {
         bytes memory args1 = HuffDeployer.encode1(
                 owner, address(0x1000), address(0x1001), address(0x1002),
-                address(0x1003), address(0x1004), address(0x1005), address(0x1006)
+                address(0x1003), address(0x1005), address(0x1006)
             );
         bytes memory args2 = HuffDeployer.encode2(
                 address(0x1007), address(0x1008), address(0x1009), address(0x100a)

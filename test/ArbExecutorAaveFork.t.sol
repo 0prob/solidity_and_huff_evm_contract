@@ -15,7 +15,6 @@ contract ArbExecutorAaveForkTest is Test {
     address constant UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     address constant SUSHISWAP_V3_FACTORY = 0x917933899c6a5F8E37F31E19f92CdBFF7e8FF0e2;
     address constant QUICKSWAP_V3_FACTORY = 0x411b0fAcC3489691f28ad58c47006AF5E3Ab3A28;
-    address constant RAMSES_V3_FACTORY = 0x2Bef16A0081565E72100D73CBe19B1Bd2d802380;
     address constant POOL_MANAGER = 0x67366782805870060151383F4BbFF9daB53e5cD6;
     address constant UNISWAP_V2_FACTORY = 0x9e5a52f57b3038F1b8EEE45f28b3c196dE8ce761;
     address constant SUSHISWAP_V2_FACTORY = 0xc35DADB65012eC5796536bD9864eD8773aBc74C4;
@@ -30,7 +29,7 @@ contract ArbExecutorAaveForkTest is Test {
 
         bytes memory args1 = HuffDeployer.encode1(
                 address(this), BALANCER_VAULT, UNISWAP_V3_FACTORY, SUSHISWAP_V3_FACTORY,
-                QUICKSWAP_V3_FACTORY, RAMSES_V3_FACTORY, AAVE_POOL, POOL_MANAGER
+                QUICKSWAP_V3_FACTORY, AAVE_POOL, POOL_MANAGER
             );
         bytes memory args2 = HuffDeployer.encode2(
                 UNISWAP_V2_FACTORY, SUSHISWAP_V2_FACTORY, QUICKSWAP_V2_FACTORY, QUICKSWAP_V4_FACTORY

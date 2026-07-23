@@ -136,7 +136,7 @@ contract ArbExecutorV4Test is Test {
 
         bytes memory args1 = HuffDeployer.encode1(
                 address(this), address(0x1000), address(0x1001), address(0x1002),
-                address(0x1003), address(0x1004), address(0x1005), address(pm)
+                address(0x1003), address(0x1005), address(pm)
             );
         bytes memory args2 = HuffDeployer.encode2(
                 address(0x1007), address(0x1008), address(0x1009), address(0x100a)

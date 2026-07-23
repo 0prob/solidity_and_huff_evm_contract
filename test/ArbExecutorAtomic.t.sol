@@ -141,7 +141,7 @@ contract ArbExecutorAtomicTest {
     function _deployExecutor(address vault) internal returns (ArbExecutor) {
         bytes memory args1 = HuffDeployer.encode1(
                 address(this), vault,
-                address(0x1001), address(0x1002), address(0x1003), address(0x1004),
+                address(0x1001), address(0x1002), address(0x1003),
                 address(0x1005), address(0x1006)
             );
         bytes memory args2 = HuffDeployer.encode2(
@@ -201,7 +201,7 @@ contract ArbExecutorAtomicTest {
     function _deployExecutorWithAave(address vault, address aavePool) internal returns (ArbExecutor) {
         bytes memory args1 = HuffDeployer.encode1(
                 address(this), vault,
-                address(0x1001), address(0x1002), address(0x1003), address(0x1004),
+                address(0x1001), address(0x1002), address(0x1003),
                 aavePool, address(0x1006)
             );
         bytes memory args2 = HuffDeployer.encode2(

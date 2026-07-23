@@ -88,7 +88,6 @@ Pool swap callbacks verify `msg.sender` against an on-chain factory lookup. Prot
 |----|----------|----------|----------|
 | 1 | V3 | Uniswap V3 | `uniswapV3SwapCallback` |
 | 2 | V3 | SushiSwap V3 | `uniswapV3SwapCallback` |
-| 6 | V3 | Ramses V3 | `uniswapV3SwapCallback` |
 | 3 | Algebra | QuickSwap V3 | `algebraSwapCallback` |
 | 4 | Algebra | QuickSwap V4 | `algebraSwapCallback` |
 | — | V4 | Uniswap V4 | `unlockCallback` (via PoolManager) |
@@ -114,7 +113,7 @@ V2/V3/Algebra callbacks pay via `transfer` (no standing approvals). Aave repayme
 
 Views (no auth): `owner`, `balancerVault`, V3/V2/Algebra factories, `aavePool`, `poolManager`, etc.
 
-Set `OWNER` to the bot wallet at deploy. Cast-based mainnet deploy creates bare runtime then calls `initialize`; the Foundry script embeds the 12 constructor args at CREATE time.
+Set `OWNER` to the bot wallet at deploy. Cast-based mainnet deploy creates bare runtime then calls `initialize`; the Foundry script embeds the 11 constructor args at CREATE time.
 
 ## Storage Layout
 
@@ -123,13 +122,13 @@ Set `OWNER` to the bot wallet at deploy. Cast-based mainnet deploy creates bare 
 | `0x00` | Owner |
 | `0x06` | Permanent reentrancy guard (`1` unlocked, `2` locked) — rescue paths |
 | `0x07` | Balancer Vault |
-| `0x08`–`0x0b` | Uni V3, Sushi V3, Quick V3 (Algebra), Ramses V3 factories |
-| `0x0c` | Aave V3 Pool |
-| `0x0d` | Uniswap V4 PoolManager |
-| `0x0e`–`0x10` | Uni V2, Sushi V2, Quick V2 factories |
-| `0x11` | QuickSwap V4 factory (may be a non-zero sentinel) |
+| `0x08`–`0x0a` | Uni V3, Sushi V3, Quick V3 (Algebra) factories |
+| `0x0b` | Aave V3 Pool |
+| `0x0c` | Uniswap V4 PoolManager |
+| `0x0d`–`0x0f` | Uni V2, Sushi V2, Quick V2 factories |
+| `0x10` | QuickSwap V4 factory (may be a non-zero sentinel) |
 
-Constructor / `initialize` take the same **12** addresses (owner + 11 protocol addresses), all non-zero. DODO pool/token context uses **transient** slots during execution only (not persistent storage).
+Constructor / `initialize` take the same **11** addresses (owner + 10 protocol addresses), all non-zero. DODO pool/token context uses **transient** slots during execution only (not persistent storage).
 
 ## Layout
 
